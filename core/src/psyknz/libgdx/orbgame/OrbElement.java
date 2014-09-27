@@ -12,9 +12,10 @@ public class OrbElement {
 	private Sprite sprite; // Reference to the sprite to use when drawing this orb.
 	private Circle bounds; // Circle representing the orbs bounding box.
 	
+	public int nearbyDynamicOrbs = 0; 		// Value to track how many orbs are currently close to this orb.
+	public Array<Body> nearbyPlayerOrbs;	// Array of orbs selected by the player which are overtop this orb.
+	
 	private Vector2 force; // Temporary variable used to process forces applied to the orb.
-	private boolean playerInteracted = false; // Flag to define whether the player is currently interacting with this orb.
-	private Array<Body> interactingOrbs;
 	
 	public OrbElement(Body body, Sprite sprite) {
 		this.body = body; // Sets the box2d body this orb is the data for.
@@ -22,7 +23,7 @@ public class OrbElement {
 		bounds = new Circle(0, 0, body.getFixtureList().first().getShape().getRadius()); // Creates the bounding box circle for this orb and sets it radius equal to that for the simulation body.
 		updateBounds(); // Does an initial update of the bounding box.
 		
-		interactingOrbs = new Array<Body>();
+		nearbyPlayerOrbs = new Array<Body>(); // Instantiates the array to track player orbs colliding with this orb.
 	}
 	
 	// Updates the orbs bounding box position to match the box2d simulation.
