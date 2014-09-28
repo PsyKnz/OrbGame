@@ -9,7 +9,13 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 
 public class OrbCollisionProcessor implements ContactListener {
 	
+	private PlayScreen screen; // Reference to the screen this processor is attached to.
+	
 	private OrbElement orbDataA, orbDataB;	// Temporary variables used to access orb user data.
+	
+	public OrbCollisionProcessor(PlayScreen screen) {
+		this.screen = screen;
+	}
 	
 	// OrbCollisionProcessor does no preSolving.
 	@Override
@@ -46,6 +52,10 @@ public class OrbCollisionProcessor implements ContactListener {
 				orbDataA.nearbyDynamicOrbs++;
 				return true;
 			}
+			else if(orbA.getBody().getType() == BodyDef.BodyType.KinematicBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
+				orbDataA = (OrbElement) orbB.getBody().getUserData();
+				orbDataA.enterPlayArea();
+			}
 			else if(orbA.getBody().getType() == BodyDef.BodyType.StaticBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
 				orbDataA = (OrbElement) orbA.getBody().getUserData();
 				orbDataB = (OrbElement) orbB.getBody().getUserData();
@@ -70,6 +80,10 @@ public class OrbCollisionProcessor implements ContactListener {
 				orbDataA = (OrbElement) orbA.getBody().getUserData();
 				orbDataA.nearbyDynamicOrbs--;
 				return true;
+			}
+			else if(orbA.getBody().getType() == BodyDef.BodyType.KinematicBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
+				orbDataA = (OrbElement) orbB.getBody().getUserData();
+				orbDataA.exitPlayArea();
 			}
 			else if(orbA.getBody().getType() == BodyDef.BodyType.StaticBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
 				orbDataA = (OrbElement) orbA.getBody().getUserData();

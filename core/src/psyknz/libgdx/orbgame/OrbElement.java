@@ -15,6 +15,8 @@ public class OrbElement {
 	public int nearbyDynamicOrbs = 0; 		// Value to track how many orbs are currently close to this orb.
 	public Array<Body> nearbyPlayerOrbs;	// Array of orbs selected by the player which are overtop this orb.
 	
+	private boolean inPlayArea = false;
+	
 	private Vector2 force; // Temporary variable used to process forces applied to the orb.
 	
 	public OrbElement(Body body, Sprite sprite) {
@@ -47,5 +49,13 @@ public class OrbElement {
 		force = new Vector2(target.x - body.getPosition().x, target.y - body.getPosition().y);
 		force.clamp(intensity, intensity);
 		body.applyForceToCenter(force, true);
+	}
+
+	public void enterPlayArea() {
+		inPlayArea = true;
+	}
+	
+	public void exitPlayArea() {
+		inPlayArea = false;
 	}
 }
