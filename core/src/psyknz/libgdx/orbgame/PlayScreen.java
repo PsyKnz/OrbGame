@@ -29,7 +29,7 @@ public class PlayScreen extends GameScreen {
 	private Array<Color> colorList = new Array<Color>();
 	private Vector2 magnetPos; // The position the magnet should be placed.
 	private float spawnRate = 1.0f; // What the spawnTimer is set to when it resets in seconds.
-	private Texture orbTex, pulseTex, backgroundTex; // Texture used to draw orbs and any pulses coming off of them.
+	private Texture orbTex, pulseTex; // Texture used to draw orbs and any pulses coming off of them.
 	private PulseElement magnetPulse; // Pulse eminating off of the magnet.
 	private TouchTracker touchTracker;
 	
@@ -54,6 +54,7 @@ public class PlayScreen extends GameScreen {
 	
 	public PlayScreen(GameCore game) {
 		super(game);
+		viewSize = 480;
 		
 		input.addProcessor(this); 						// Adds the PlayScreen as an input processor for the game.
 		touchTracker = new TouchTracker(ORB_DIAMETER);	// Creates a TouchTracker to movement of the players finger across the screen.
