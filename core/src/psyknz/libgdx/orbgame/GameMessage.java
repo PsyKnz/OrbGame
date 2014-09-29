@@ -14,8 +14,8 @@ public class GameMessage {
 	private Sprite background;	
 	private Vector2 pos;
 	
-	public GameMessage(String text, float x, float y) {
-		font = new BitmapFont();
+	public GameMessage(String text, BitmapFont font, float x, float y) {
+		this.font = font;
 		pos = new Vector2(x, y);
 		setText(text);
 	}

@@ -1,5 +1,8 @@
 package psyknz.libgdx.orbgame;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
+
 import psyknz.libgdx.architecture.*;
 
 public class OrbGame extends GameCore {
@@ -10,5 +13,4 @@ public class OrbGame extends GameCore {
 		
 		setScreen(new PlayScreen(this));
 	}
-
 }

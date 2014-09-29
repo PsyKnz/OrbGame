@@ -11,8 +11,10 @@ public class PulseElement {
 	private float pulseSpeed; 			// How many times the pulse should fire every second.
 	private float alphaStart, alphaEnd;	// How much the alpha should change during a pulse.
 	
-	private float currentSize, currentAlpha;
-	private Vector2 currentPos = new Vector2();
+	private float currentSize, currentAlpha;	// The current size and alpha of the pulse at any given point in time.
+	private Vector2 currentPos = new Vector2();	// The current position of the pulse in the game world.
+	
+	private float newPulseEnd = -1; // Variable used to determine if the pulse needs to set a new size.
 	
 	public PulseElement(Sprite sprite, float pulseScale, float pulseSpeed, float alphaStart, float alphaEnd) {
 		this.sprite = sprite;								// Sets the sprite to use for the pulse.
@@ -27,16 +29,18 @@ public class PulseElement {
 		currentSize += (pulseEnd - pulseStart) * pulseSpeed * delta;	// Updates the size of the sprite.
 		currentAlpha += (alphaEnd - alphaStart) * pulseSpeed * delta;	// Updates the sprites alpha.
 		
-		while(currentSize > pulseEnd) {				// While the current size is greater than the final size (and hence a pulse finished),
-			currentSize -= (pulseEnd - pulseStart);	// the current size is reduced back to the starting size,
-			currentAlpha -= (alphaEnd - alphaStart);// as is the alpha value.
+		while(currentSize > pulseEnd) {	// While the current size is greater than the final size,
+			if(newPulseEnd >= 0) {		// if a new pulse size has been specified,
+				pulseEnd = newPulseEnd;	// the pulse size is adjusted,
+				newPulseEnd = -1;		// and the new pulse size reset.
+			}
+			currentSize -= (pulseEnd - pulseStart);	// the current size is reduced back towards the starting size.
 		}
+		while(currentAlpha < alphaEnd) currentAlpha -= (alphaEnd - alphaStart); // as is the alpha value.
 		
-		currentPos.x = sprite.getX() + sprite.getWidth() / 2;
-		currentPos.y = sprite.getY() + sprite.getHeight() / 2;
 		sprite.setSize(currentSize, currentSize);	// The width and height of the sprite is updated to match the current size.
-		setCenterPos(currentPos);
-		sprite.setAlpha(currentAlpha);				// Its alpha is updated as well.
+		setCenterPos(currentPos);					// It is re-centered to adjust for being resized.
+		sprite.setAlpha(currentAlpha);				// Its alpha is updated.
 	}
 	
 	 // Draws the pulse sprite to the screen.
@@ -52,6 +56,12 @@ public class PulseElement {
 	// Sets the position of the center of the pulse using individual coordinates.
 	public void setCenterPos(float x, float y) {
 		sprite.setCenter(x, y);
+		currentPos.set(x, y);
+	}
+	
+	// Sets a new pulse scale which will take effect once the current pulse is finished.
+	public void setPulseScale(float scale) {
+		newPulseEnd = pulseStart * scale;
 	}
 
 }
