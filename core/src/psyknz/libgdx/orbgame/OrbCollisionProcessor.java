@@ -1,6 +1,5 @@
 package psyknz.libgdx.orbgame;
 
-import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.Manifold;
@@ -17,81 +16,61 @@ public class OrbCollisionProcessor implements ContactListener {
 		this.screen = screen;
 	}
 	
-	// OrbCollisionProcessor does no preSolving.
 	@Override
-	public void preSolve(Contact contact, Manifold manifold) {}
+	public void preSolve(Contact contact, Manifold manifold) {}	// OrbCollisionProcessor does no preSolving.
 	
 	@Override
 	public void beginContact(Contact contact) {
-		if(!beginContactTest(contact.getFixtureA(), contact.getFixtureB())) { 	// If the contact test fails for A vs B,
-			beginContactTest(contact.getFixtureB(), contact.getFixtureA());		// then it is tested for B vs A.
+		if(!processBeginContact(contact.getFixtureA(), contact.getFixtureB())) {	// If the contact test fails for A vs B,
+			processBeginContact(contact.getFixtureB(), contact.getFixtureA());		// then it is tested for B vs A.
 		}
 	}
 	
 	@Override
 	public void endContact(Contact contact) {
-		if(!endContactTest(contact.getFixtureA(), contact.getFixtureB())) {	// If the contact test fails for A vs B,
-			endContactTest(contact.getFixtureB(), contact.getFixtureA());	// then it is tested for B vs A.
+		if(!processEndContact(contact.getFixtureA(), contact.getFixtureB())) {	// If the contact test fails for A vs B,
+			processEndContact(contact.getFixtureB(), contact.getFixtureA());	// then it is tested for B vs A.
 		}
 	}
 	
-	// OrbCollisionProcessor does no postSolving.
 	@Override
-	public void postSolve(Contact contact, ContactImpulse impulse) {}
+	public void postSolve(Contact contact, ContactImpulse impulse) {}	// OrbCollisionProcessor does no postSolving.
 	
-	/** Used to process collisions. Custom collisions only occur between sensors and non-sensors. If a dynamic sensor (always attached
-	 *  to a freely moving orb) comes in contact with a non-sensor orb it increases its count of nearby orbs. If the sensor is static
-	 *  and comes in contact with a dynamic non-sensor, it is the player interacting with an orb.
-	 * @param orbA the orb to test as a sensor.
-	 * @param orbB the orb to test as a normal orb body.
+	/** Used to process collisions. Custom collisions only occur between the border and free orbs.
+	 * @param a the orb to test as a sensor.
+	 * @param b the orb to test as a normal orb body.
 	 * @return	true if a collision outcome was detected. */
-	private boolean beginContactTest(Fixture orbA, Fixture orbB) {
-		if(orbA.isSensor() && !orbB.isSensor()) {
-			if(orbA.getBody().getType() == BodyDef.BodyType.DynamicBody) {
-				orbDataA = (OrbElement) orbA.getBody().getUserData();
-				orbDataA.nearbyDynamicOrbs++;
+	public boolean processBeginContact(Fixture a, Fixture b) {
+		orbDataA = (OrbElement) a.getBody().getUserData();
+		if(orbDataA.getState() == OrbElement.State.BORDER) {
+			orbDataB = (OrbElement) b.getBody().getUserData();
+			if(orbDataB.getState() == OrbElement.State.FREE) {
+				orbDataB.enterPlayArea();
 				return true;
-			}
-			else if(orbA.getBody().getType() == BodyDef.BodyType.KinematicBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
-				orbDataA = (OrbElement) orbB.getBody().getUserData();
-				orbDataA.enterPlayArea();
-			}
-			else if(orbA.getBody().getType() == BodyDef.BodyType.StaticBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
-				orbDataA = (OrbElement) orbA.getBody().getUserData();
-				orbDataB = (OrbElement) orbB.getBody().getUserData();
-				if(orbDataA.getSprite().getColor().equals(orbDataB.getSprite().getColor())) {
-					orbDataB.nearbyPlayerOrbs.add(orbA.getBody());
-					return true;
-				}
 			}
 		}
 		return false;
 	}
 	
-	/** Used to process collisions. Custom collisions only occur between sensors and non-sensors. If a dynamic sensor (always attached
-	 *  to a freely moving orb) leaves contact with a non-sensor orb it decreases its count of nearby orbs. If the sensor is static
-	 *  and leaves contact with a dynamic non-sensor, the player is no longer interacting with the orb. 
-	 * @param orbA the orb to test as a sensor.
-	 * @param orbB the orb to test as a normal orb body.
+	/** Used to process collisions. Custom collisions only occur between actively selected orbs and free orbs, and between the border and
+	 * free orbs. 
+	 * @param a the orb to test as a sensor.
+	 * @param b the orb to test as a normal orb body.
 	 * @return	true if a collision outcome was detected. */
-	private boolean endContactTest(Fixture orbA, Fixture orbB) {
-		if(orbA.isSensor() && !orbB.isSensor()) {
-			if(orbA.getBody().getType() == BodyDef.BodyType.DynamicBody) {
-				orbDataA = (OrbElement) orbA.getBody().getUserData();
-				orbDataA.nearbyDynamicOrbs--;
+	public boolean processEndContact(Fixture a, Fixture b) {
+		orbDataA = (OrbElement) a.getBody().getUserData();
+		if(orbDataA.getState() == OrbElement.State.ACTIVE_SELECTED) {
+			orbDataB = (OrbElement) b.getBody().getUserData();
+			if(orbDataB.getState() == OrbElement.State.FREE && orbDataB.getSprite().getColor().equals(orbDataA.getSprite().getColor())) {
+				screen.selectOrb(b.getBody());
 				return true;
 			}
-			else if(orbA.getBody().getType() == BodyDef.BodyType.KinematicBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
-				orbDataA = (OrbElement) orbB.getBody().getUserData();
-				orbDataA.exitPlayArea();
-			}
-			else if(orbA.getBody().getType() == BodyDef.BodyType.StaticBody && orbB.getBody().getType() == BodyDef.BodyType.DynamicBody) {
-				orbDataA = (OrbElement) orbA.getBody().getUserData();
-				orbDataB = (OrbElement) orbB.getBody().getUserData();
-				if(orbDataA.getSprite().getColor().equals(orbDataB.getSprite().getColor())) {
-					orbDataB.nearbyPlayerOrbs.removeValue(orbA.getBody(), true);
-					return true;
-				}
+		}
+		else if(orbDataA.getState() == OrbElement.State.BORDER) {
+			orbDataB = (OrbElement) b.getBody().getUserData();
+			if(orbDataB.getState() == OrbElement.State.FREE) {
+				orbDataB.exitPlayArea();
+				return true;
 			}
 		}
 		return false;

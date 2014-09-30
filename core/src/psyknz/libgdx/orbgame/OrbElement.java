@@ -3,7 +3,6 @@ package psyknz.libgdx.orbgame;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.physics.box2d.Body;
 
 public class OrbElement {
@@ -23,10 +22,7 @@ public class OrbElement {
 	
 	private PulseElement pulse = null;	// Reference to the pulse coming from this orb. No pulse by default.
 	
-	public int nearbyDynamicOrbs = 0; 		// Value to track how many orbs are currently close to this orb.
-	public Array<Body> nearbyPlayerOrbs;	// Array of orbs selected by the player which are overtop this orb.
-	
-	private boolean inPlayArea = false;
+	private boolean inPlayArea = false;	// Flag to track whether or not the orb is currently in the play area.
 	
 	private Vector2 force; // Temporary variable used to process forces applied to the orb.
 	
@@ -38,9 +34,7 @@ public class OrbElement {
 		// Creates a bounding circle for this orb the same size as the box2d circle it is user data for.
 		bounds = new Circle(0, 0, body.getFixtureList().first().getShape().getRadius());
 		
-		nearbyPlayerOrbs = new Array<Body>(); // Instantiates the array to track player orbs colliding with this orb.
-		
-		update(0.01f); // Does an initial update to synchronise the bounding box and sprite with the box2d body.
+		update(0); // Does an initial blank update to synchronise the bounding box and sprite with the box2d body.
 	}
 	
 	public void update(float delta) {
@@ -72,6 +66,7 @@ public class OrbElement {
 	
 	public void setPulse(PulseElement pulse) {
 		this.pulse = pulse;
+		pulse.setCenterPos(bounds.x, bounds.y);
 	}
 	
 	public PulseElement getPulse() {

@@ -34,25 +34,25 @@ public class PlayScreen extends GameScreen {
 	private Array<Color> colorList = new Array<Color>();
 	private Vector2 magnetPos; // The position the magnet should be placed.
 	private TouchTracker touchTracker;	// Reference to the object recording user input.
-	private Sprite topPanel, bottomPanel;
+	private ScoreBarElement scores;
 	
-	private World world; 						// Reference to the box2d simulation world.
-	private BodyDef orbBodyDef; 				// Default body definition for new orbs.
-	private FixtureDef orbFixDef, sensorFixDef; // Fixture definitons for orbs and their sensors.
-	private CircleShape orbShape, sensorShape; 	// Shape information for orbs and their sensors.
-	private Body border, magnet;				// References to the border and magnet object which are always present.
+	private World world; 			// Reference to the box2d simulation world.
+	private BodyDef orbBodyDef; 	// Default body definition for new orbs.
+	private FixtureDef orbFixDef;	// Fixture definitons for orbs and their sensors.
+	private CircleShape orbShape; 	// Shape information for orbs and their sensors.
+	private Body border, magnet;	// References to the border and magnet object which are always present.
 	
 	private Array<Body> orbs = new Array<Body>(); // Creates a black Array to store references to bodies in the Box2D simulation.
 	
-	private BitmapFont debugFont = new BitmapFont(); // Font used to draw debug info to the screen.
-	private float fps = 0;
+	private Box2dDebugger debugger;
 	private Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer(); // Creates the debug renderer for Box2D entities.
-	private boolean debugRenderOn = false; // Flag to determine if the Box2D debugRenderer should run.
+	public boolean debugRenderOn = false; // Flag to determine if the Box2D debugRenderer should run.
 	private GameMessage currentMsg = null;
 	
 	private Vector3 touchCoords = new Vector3(); // Vector3 used for processing and converting user touch co-ordinates.
 	private OrbElement orbDataA; // Member variable used to temporarily access orb data.
 	private Array<Body> selectedOrbs = new Array<Body>(); // Array to store orbs currently selected by the player.
+	private Body orbToAdd = null; // Flag to indicate an orb which should be added to the selection when possible.
 	private Array<Vector2> selectedCoords = new Array<Vector2>();
 	
 	public PlayScreen(GameCore game) {
@@ -78,8 +78,6 @@ public class PlayScreen extends GameScreen {
 		
 		orbShape = new CircleShape(); 					// Creates the circle shape used to define orbs.
 		orbShape.setRadius(ORB_DIAMETER / 2); 			// Sets the radius of all circles based on the pre-defined ORB_DIAMETER.
-		sensorShape = new CircleShape();				// Creates the circle shape used to define orb sensors.
-		sensorShape.setRadius(ORB_DIAMETER * 5 / 8);	// Sets the radius of sensor circles to 5/4 the size of the orb.
 		
 		orbBodyDef = new BodyDef(); 					// Creates the definition for orbs.
 		orbBodyDef.type = BodyDef.BodyType.DynamicBody; // Sets orbs type to dynamic so that it is affected by forces.
@@ -90,9 +88,8 @@ public class PlayScreen extends GameScreen {
 		orbFixDef.density = 0.1f; 		// Sets the orbs density.
 		orbFixDef.restitution = 0.0f; 	// Sets the orbs restitution.
 		
-		sensorFixDef = new FixtureDef(); 	// Creates a new fixture definition for orbs.
-		sensorFixDef.shape = sensorShape;	// Sets the sensors shape to the predefined circle.
-		sensorFixDef.isSensor = true;		// Sets the fixture to a sensor.
+		debugger = new Box2dDebugger(this, world);
+		input.addProcessor(0, debugger);
 	}
 	
 	@Override
@@ -151,12 +148,14 @@ public class PlayScreen extends GameScreen {
 		
 		float panelHeight = (camera.viewportHeight - viewSize) / 2;
 		Texture tex = game.assets.get("white_circle.png", Texture.class);
-		topPanel = new Sprite(tex, tex.getWidth() / 2, tex.getHeight() / 2, 1, 1);
+		Sprite topPanel = new Sprite(tex, tex.getWidth() / 2, tex.getHeight() / 2, 1, 1);
 		topPanel.setBounds(0 - viewSize / 2, viewSize / 2, viewSize, panelHeight);
 		topPanel.setColor(Color.DARK_GRAY);
-		bottomPanel = new Sprite(tex, tex.getWidth() / 2, tex.getHeight() / 2, 1, 1);
+		Sprite bottomPanel = new Sprite(tex, tex.getWidth() / 2, tex.getHeight() / 2, 1, 1);
 		bottomPanel.setBounds(0 - viewSize / 2, 0 - viewSize / 2 - panelHeight, viewSize, panelHeight);
 		bottomPanel.setColor(Color.DARK_GRAY);
+		BitmapFont font = game.assets.get("kenpixel_blocks.ttf", BitmapFont.class);
+		scores = new ScoreBarElement(topPanel, bottomPanel, font);
 	}
 	
 	@Override
@@ -167,7 +166,7 @@ public class PlayScreen extends GameScreen {
 	
 	@Override
 	public void update(float delta) {
-		if(debugRenderOn) fps = 1 / delta; // Roughly works out how many frames per second are being rendered in debug mode.
+		if(debugRenderOn) debugger.update(delta); // Updates the debugger.
 		
 		if(currentMsg != null) return; // If there is a message being displayed on screen then the rest of the update step is skipped.
 		
@@ -186,23 +185,22 @@ public class PlayScreen extends GameScreen {
 			if(orb.getType() == BodyDef.BodyType.DynamicBody) {
 				orbDataA = (OrbElement) orb.getUserData();
 				orbDataA.attractTo(magnetPos, orbAcceleration * delta);
-				if(orbDataA.nearbyPlayerOrbs.size > 0) {
-					if(orbDataA.nearbyDynamicOrbs <= 0) {
-						addOrbToSelection(orb);
-					}
-					else for(Body playerOrb : orbDataA.nearbyPlayerOrbs) {
-						orbDataA.attractTo(playerOrb.getPosition(), orbAcceleration * delta * 2);
-					}
-				}
 			}
 		}
 		
 		world.step(1/60f, 6, 2); // Steps through the Box2D simulation.
 		
+		if(orbToAdd != null) {				// If an orb is flagged to be added to the selection,
+			addOrbToSelection(orbToAdd); 	// its added,
+			orbToAdd = null;				// and the flag is set back to null.
+		}
+		
 		for(Body orb: orbs) {							// For every orb in the simulation,
 			orbDataA = (OrbElement) orb.getUserData();	// it's user data is acessed.
 			orbDataA.update(delta);						// and the position of its bounding box is updated.
 		}
+		
+		scores.update(delta);
 	}
 	
 	@Override
@@ -227,10 +225,9 @@ public class PlayScreen extends GameScreen {
 			if(orbDataA.getPulse() != null) orbDataA.getPulse().draw(batch);	// and if it has a pulse its pulse is drawn.
 		}
 		
-		topPanel.draw(batch);
-		bottomPanel.draw(batch);
+		scores.draw(batch);
 		
-		if(debugRenderOn) debugFont.draw(batch, "FPS: " + fps, 0, Gdx.graphics.getHeight()); // Draws an FPS counter in the top left coner of the screen if debug is on.
+		if(debugRenderOn) debugger.draw(batch); // Draws an FPS counter in the top left coner of the screen if debug is on.
 		if(currentMsg != null) currentMsg.draw(batch);
 	}
 	
@@ -253,8 +250,8 @@ public class PlayScreen extends GameScreen {
 		orbBodyDef.position.set(x, y); // Sets the x, y co-ordinates for the new orb.
 		
 		Body orb = world.createBody(orbBodyDef);	// Creates a new orb in the physics world.
-		orb.createFixture(orbFixDef); 				// Generates the fixture representing the physical orb
-		orb.createFixture(sensorFixDef);			// Generates the fixture which senses if the orb is next to other orbs.
+		orb.createFixture(orbFixDef); 				// Generates the fixture representing the physical orb.
+		orb.setLinearVelocity(0 - x / 2, 0 - y / 2);
 		
 		Sprite orbSprite = new Sprite(game.assets.get("white_circle.png", Texture.class));			// Creates a sprite for the orb.
 		orbSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);	// Sets the size of the sprite as the default orb size.
@@ -267,8 +264,12 @@ public class PlayScreen extends GameScreen {
 		return orb; // Returns a reference to the orb which has just been created.
 	}
 	
+	public void selectOrb(Body orb) {
+		orbToAdd = orb;
+	}
+	
 	// Adds the given orb to the list of currently selected orbs.
-	public void addOrbToSelection(Body orb) {
+	private void addOrbToSelection(Body orb) {
 		if(selectedOrbs.size > 0) {										// If there are already orbs selected by the player,
 			orbDataA = (OrbElement) selectedOrbs.peek().getUserData();	// the data for the last orb is selected,
 			orbDataA.setState(OrbElement.State.SELECTED);				// and its state is set to SELECTED (From ACTIVE_SELECTED).
@@ -283,12 +284,13 @@ public class PlayScreen extends GameScreen {
 		orbDataA.setPulse(new PulseElement(pulseSprite, 2, 3, 0.8f, 0.0f));
 		touchTracker.setMaxLength(selectedOrbs.size * ORB_DIAMETER + ORB_DIAMETER); // Increases the length of the TouchTracker to accomodate another orb.
 		orb.setType(BodyDef.BodyType.StaticBody);									// Sets the selected orb to static so that it isn't effected by forces.
-		orb.destroyFixture(orb.getFixtureList().get(1));							// Removes the orbs defaut sensor for nearby orbs.
 		orb.getFixtureList().first().setSensor(true);								// Sets the selected orb as a sensor so that it can drag over orbs.
 	}
 	
 	// Scores all currently selected orbs and removes them from the game.
 	public void scoreSelectedOrbs() {
+		scores.addToScore((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);
+		spawnRate *= 0.95f;
 		for(Body orb : selectedOrbs) world.destroyBody(orb);	// Every currently selected orb is removed from the box2d simulation.
 		selectedOrbs.clear();									// The list of selected orbs is cleared.
 		touchTracker.setMaxLength(ORB_DIAMETER);				// Resets the length of the touchTracker to the diameter of an orb.
@@ -305,7 +307,6 @@ public class PlayScreen extends GameScreen {
 	public void dispose() {
 		debugRenderer.dispose(); 	// Disposes of the debugRenderer.
 		orbShape.dispose(); 		// Disposes of the orbs circle information.
-		sensorShape.dispose();		// Disposes of the sensors circle information.
 		super.dispose();
 	}
 	
@@ -382,9 +383,6 @@ public class PlayScreen extends GameScreen {
 			createOrb(magnetPos.x + MathUtils.sinDeg(i * angleSpacing + startingAngle) * distance, 
 					magnetPos.y + MathUtils.cosDeg(i * angleSpacing + startingAngle) * distance);
 		}
-		
-		// Runs the world simulation for a second to move everything into place.
-		for(float i = 0.1f; i < 1; i += 0.1f) update(i);
 	}
 	
 	// Returns a random color from the list of predefined colors using a shuffled list without replacement.

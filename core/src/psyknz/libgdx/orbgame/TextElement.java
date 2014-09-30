@@ -78,6 +78,10 @@ public class TextElement {
 		return pos;	// Returns the current position of the text.
 	}
 	
+	public Rectangle getBounds() {
+		return bounds; // Returns a reference to the texts bounding box.
+	}
+	
 	public void draw(SpriteBatch batch) {
 		font.draw(batch, text, bounds.x, bounds.y);	// Draws the text to the screen.
 	}
