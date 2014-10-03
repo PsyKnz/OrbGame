@@ -49,6 +49,13 @@ public class OrbCollisionProcessor implements ContactListener {
 				return true;
 			}
 		}
+		else if(orbDataA.getState() == OrbElement.State.FREE && orbDataA.inPlayArea) {
+			orbDataB = (OrbElement) b.getBody().getUserData();
+			if(orbDataB.getState() == OrbElement.State.FREE && !orbDataB.inPlayArea) {
+				screen.gameOver(b.getBody());
+				return true;
+			}
+		}
 		return false;
 	}
 	

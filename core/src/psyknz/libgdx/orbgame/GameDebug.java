@@ -1,7 +1,5 @@
 package psyknz.libgdx.orbgame;
 
-import psyknz.libgdx.architecture.*;
-
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -10,7 +8,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.physics.box2d.Body;
 
-public class Box2dDebugger extends InputAdapter{
+public class GameDebug extends InputAdapter{
 	
 	private PlayScreen screen;	// Reference to the screen this debugger is functioning on.
 	
@@ -25,7 +23,7 @@ public class Box2dDebugger extends InputAdapter{
 	private Array<Body> bodies = new Array<Body>();	// Temporary array to store all bodies in the box2d simulation.
 	private OrbElement orbData;						// Temporary variable used to access orb user data.
 	
-	public Box2dDebugger(PlayScreen screen, World world) {
+	public GameDebug(PlayScreen screen, World world) {
 		this.screen = screen;
 		font = new BitmapFont();
 		this.world = world;
@@ -45,14 +43,16 @@ public class Box2dDebugger extends InputAdapter{
 	public void draw(SpriteBatch batch) {
 		font.draw(batch, "FPS: " + fps, screen.getCamera().position.x - screen.getCamera().viewportWidth / 2,
 				screen.getCamera().position.y + screen.getCamera().viewportHeight / 2); 
-		if(body != null) font.draw(batch, "VEL X: " + body.getLinearVelocity().x + ", Y: " + body.getLinearVelocity().y,
+		if(body != null) {
+			OrbElement orbData = (OrbElement) body.getUserData();
+			font.draw(batch, "VEL: " + body.getLinearVelocity().x + ", " + body.getLinearVelocity().y + " " + orbData.inPlayArea,
 				body.getPosition().x, body.getPosition().y);
+		}
 	}
 	
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-		if(screen.debugRenderOn) return true;	// Prevents touchDown from being called at all if in debug mode.
-		else return false;						// Otherwise the input is passed on.
+		return true; // Prevents touchDown from being called at all if in debug mode.
 	}
 	
 	@Override

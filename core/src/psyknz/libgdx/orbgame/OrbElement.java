@@ -22,7 +22,7 @@ public class OrbElement {
 	
 	private PulseElement pulse = null;	// Reference to the pulse coming from this orb. No pulse by default.
 	
-	private boolean inPlayArea = false;	// Flag to track whether or not the orb is currently in the play area.
+	public boolean inPlayArea = false;	// Flag to track whether or not the orb is currently in the play area.
 	
 	private Vector2 force; // Temporary variable used to process forces applied to the orb.
 	
