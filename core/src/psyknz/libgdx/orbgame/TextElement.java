@@ -1,5 +1,6 @@
 package psyknz.libgdx.orbgame;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
@@ -42,8 +43,8 @@ public class TextElement {
 	public void setText(String text) {
 		this.text = text;											// Sets the text this element will draw.
 		BitmapFont.TextBounds textBounds = font.getBounds(text);	// Determines the size of the text.
-		bounds.setSize(textBounds.width, textBounds.height);		// Sets the size of the bounding box to match the text.
-		setAlignment(hAlign, vAlign);
+		bounds.setSize(textBounds.width, textBounds.height);		// Sets the size of the bounding box to match the text,
+		setAlignment(hAlign, vAlign);								// and then re-aligns the text.
 	}
 	
 	public String getText() {

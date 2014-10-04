@@ -3,6 +3,7 @@ package psyknz.libgdx.orbgame;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -22,7 +23,7 @@ import psyknz.libgdx.architecture.*;
 
 public class PlayScreen extends GameScreen {
 	
-	public static final float ORB_DIAMETER = 42;	// Size of the orbs in the game.
+	public static final float ORB_DIAMETER = 45;	// Size of the orbs in the game.
 	public static final int POINTS_PER_ORB = 10;	// Number of points earned per orb.
 	
 	private float spawnDistance;	// Distance from the magnet new orbs should be spawned at.
@@ -60,6 +61,9 @@ public class PlayScreen extends GameScreen {
 	private Body orbToAdd = null; // Flag to indicate an orb which should be added to the selection when possible.
 	private Array<Vector2> selectedCoords = new Array<Vector2>();
 	
+	private UIElement ui;					//
+	private OrthographicCamera uiCamera;	//
+	
 	public PlayScreen(GameCore game) {
 		super(game);
 		viewSize = 480; // Sets the length of the shortest screen edge in game units.
@@ -81,8 +85,8 @@ public class PlayScreen extends GameScreen {
 		game.assets.load("white_torus.png", Texture.class);
 		game.assets.finishLoading();
 		
-		orbShape = new CircleShape(); 					// Creates the circle shape used to define orbs.
-		orbShape.setRadius(ORB_DIAMETER / 2); 			// Sets the radius of all circles based on the pre-defined ORB_DIAMETER.
+		orbShape = new CircleShape(); 			// Creates the circle shape used to define orbs.
+		orbShape.setRadius(ORB_DIAMETER / 2); 	// Sets the radius of all circles based on the pre-defined ORB_DIAMETER.
 		
 		orbBodyDef = new BodyDef(); 					// Creates the definition for orbs.
 		orbBodyDef.type = BodyDef.BodyType.DynamicBody; // Sets orbs type to dynamic so that it is affected by forces.
@@ -93,6 +97,9 @@ public class PlayScreen extends GameScreen {
 		orbFixDef.density = 0.1f; 		// Sets the orbs density.
 		orbFixDef.restitution = 0.0f; 	// Sets the orbs restitution.
 		
+		ui = new UIElement(this);
+		uiCamera = new OrthographicCamera();
+		
 		if(debugOn) {									// If debug mode is enabled at start-up,
 			debug = new GameDebug(this, world);			// then a game debug object is initialised,
 			debugRenderer = new Box2DDebugRenderer();	// as is a box2d debug object.
@@ -102,49 +109,8 @@ public class PlayScreen extends GameScreen {
 	
 	@Override
 	public void show() {
-		super.show();
-		
-		BodyDef magnetDef = new BodyDef(); 					// Creates a new definition for the magnet.
-		magnetDef.type = BodyDef.BodyType.StaticBody; 		// Sets the magnet to static.
-		magnetDef.position.set(0, 0); 					// Places the magnet in its spot.
-		magnet = world.createBody(magnetDef); 				// Creates the magnet body.
-		magnet.createFixture(orbShape, 0f); 				// Sets the fixture for the magnet to a circle.
-		Sprite magnetSprite = new Sprite(game.assets.get("white_circle.png", Texture.class));			// Creates the sprite to use for drawing the magnet.
-		magnetSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);	// Sets the sprite to the size of the orbs.
-		magnetSprite.setColor(Color.GRAY);					// Sets the color of the magnet to gray.
-		Sprite pulse = new Sprite(game.assets.get("white_torus.png", Texture.class));						// Creates the sprite to use for drawing the magnet pulse.
-		pulse.setSize(ORB_DIAMETER, ORB_DIAMETER);					// Sets the size of the sprite to the size of the orbs.
-		pulse.setColor(Color.GRAY);// Sets the color of the pulse to white.
-		OrbElement magnetData = new OrbElement(magnet, magnetSprite, OrbElement.State.MAGNET);
-		magnetData.setPulse(new PulseElement(pulse, 3.5f, 2, 0.8f, 0));	// Creates the pulse element so that it doubles in size as it pulses, pulses twice a second, and goes from an alpha of 0.8 to 0.3 as it pulses.
-		magnet.setUserData(magnetData);	// Creates Orb Data for the magnet.
-		
-		CircleShape borderShape = new CircleShape();		// Creates a new circle.
-		float borderSize = viewSize - ORB_DIAMETER;			// Creates a float which will store the size of the border.
-		borderShape.setRadius(borderSize / 2);				// Sets the size of the circle to the size the border should be.
-		FixtureDef borderFixDef = new FixtureDef();			// Creates a fixture to represent the border.
-		borderFixDef.shape = borderShape;					// Sets the fixtures shape as the border circle.
-		borderFixDef.isSensor = true;						// Sets the fixture as a sensor to prevent physics affecting it.
-		border = world.createBody(magnetDef);				// Places a body in the box2d simulation representing the border.
-		border.createFixture(borderFixDef);					// Creates the circular fixture for the body.
-		Sprite borderSprite = new Sprite(game.assets.get("white_circle.png", Texture.class));			// Creates a sprite to use when drawing the border.
-		borderSprite.setSize(borderSize, borderSize);		// Sets the sprites size equal to the size of the border.
-		borderSprite.setColor(Color.MAROON);				// Sets the color of the border.
-		border.setUserData(new OrbElement(border, 
-				borderSprite, OrbElement.State.BORDER));	// Sets the borders user data as the sprite used to draw it.
-		borderShape.dispose();								// Disposes of the circle information for the border.	
-		
-		world.getBodies(orbs); 	// Updates the list of Box2D entities.
-		
-		placeRingOfOrbs(6, 30);
-		placeRingOfOrbs(12, 0);
-		for(int i = 0; i < 30; i++) world.step(1/60f, 6, 2);
-		for(Body orb: orbs) {
-			orbDataA = (OrbElement) orb.getUserData();
-			orbDataA.update(0);
-		}
-		
-		currentMsg = displayMessage("Tap Screen to Start"); // Waits for user input before starting a game.
+		super.show();		
+		generateNewGame();	// When the screen is first switched to it generates a new game.
 	}
 	
 	@Override
@@ -164,6 +130,12 @@ public class PlayScreen extends GameScreen {
 		bottomPanel.setColor(Color.DARK_GRAY);
 		BitmapFont font = game.assets.get("kenpixel_blocks.ttf", BitmapFont.class);
 		scores = new ScoreBarElement(topPanel, bottomPanel, font);
+		
+		uiCamera.viewportWidth = width;
+		uiCamera.viewportHeight = height;
+		uiCamera.position.set(width / 2, height / 2, 0);
+		uiCamera.update();
+		ui.setViewport(uiCamera);
 	}
 	
 	@Override
@@ -242,7 +214,13 @@ public class PlayScreen extends GameScreen {
 	
 	@Override
 	public void render(float delta) {
-		super.render(delta);		
+		super.render(delta);
+		
+		batch.setProjectionMatrix(uiCamera.combined);
+		batch.begin();
+		ui.draw(batch);
+		batch.end();
+		
 		if(debugOn) debugRenderer.render(world, camera.combined); // Renders all Box2D entities if in debug mode.
 	}
 	
@@ -312,6 +290,7 @@ public class PlayScreen extends GameScreen {
 	public void dispose() {
 		if(debugOn) debugRenderer.dispose(); 	// Disposes of the debugRenderer if there is one.
 		orbShape.dispose(); 					// Disposes of the orbs circle information.
+		world.dispose();						// Disposes of the box2d simulation object.
 		super.dispose();
 	}
 	
@@ -409,8 +388,71 @@ public class PlayScreen extends GameScreen {
 		orbDataA.getSprite().setColor(Color.WHITE);
 	}
 	
+	/** Function to access the array containing all orbs the player currently has selected. 
+	 * @return Reference to the array recording which orbs the player currently has selected. */
 	public Array<Body> getSelectedOrbs() {
 		return selectedOrbs;
+	}
+	
+	/**
+	 * 
+	 */
+	public void generateNewGame() {
+		BodyDef magnetDef = new BodyDef(); 				// Creates a new body definition for the magnet,
+		magnetDef.type = BodyDef.BodyType.StaticBody;	// as static,
+		magnetDef.position.set(0, 0); 					// and placed at the centre of the game world (0, 0).
+		
+		magnet = world.createBody(magnetDef);	// Creates a new magnet using the above Body Definition.
+		magnet.createFixture(orbShape, 0f);		// Provides the magnet with a single circular fixture the size of an orb.
+		
+		Sprite magnetSpr = new Sprite(game.assets.get("white_circle.png", Texture.class));	// Creates the magnets sprite.
+		magnetSpr.setSize(ORB_DIAMETER, ORB_DIAMETER);										// Sets it to the size of an orb,
+		magnetSpr.setColor(Color.GRAY);														// and makes it gray.
+		
+		Sprite pulse = new Sprite(game.assets.get("white_torus.png", Texture.class)); 	// Creates a pulse sprite for the magnet.
+		pulse.setSize(ORB_DIAMETER, ORB_DIAMETER);										// Sets it to the size of an orb,
+		magnetSpr.setColor(Color.GRAY);													// and makes it gray.
+		
+		OrbElement magnetData = new OrbElement(magnet, magnetSpr, OrbElement.State.MAGNET); // Generates user data for the magnet.
+		magnetData.setPulse(new PulseElement(pulse, 3.5f, 2, 0.8f, 0));						// Adds the new pulse to the magnet.
+		magnet.setUserData(magnetData);														// Sets the data to the body.
+		
+		float borderSize = viewSize - ORB_DIAMETER;		// Determines the size of the border.
+		CircleShape borderShape = new CircleShape();	// Creates a new circle,
+		borderShape.setRadius(borderSize / 2);			// and sets its size to the size of the border.
+		
+		FixtureDef borderFixDef = new FixtureDef();	// Creates a new fixture definiton for the border.
+		borderFixDef.shape = borderShape;			// Sets the fixtures shape to the new circle,
+		borderFixDef.isSensor = true;				// and makes it a sensor so that it has no direct effect on the simulation.
+		
+		border = world.createBody(magnetDef);	// Creates a new border object using the magnets definition,
+		border.createFixture(borderFixDef);		// and generates the borders fixture.
+		
+		Sprite borderSpr = new Sprite(game.assets.get("white_circle.png", Texture.class));	// Creates a sprite for the border.
+		borderSpr.setSize(borderSize, borderSize);											// Sets its size to what was previously calculated,
+		borderSpr.setColor(Color.MAROON);													// and makes it MAROON.
+		border.setUserData(new OrbElement(border, borderSpr, OrbElement.State.BORDER));		// User data is generated for the border.
+		borderShape.dispose();																// The circle created to generate the border is disposed of.	
+		
+		placeRingOfOrbs(6, 30);									// Places a ring of six orbs,
+		placeRingOfOrbs(12, 0);									// and a ring of 12 orbs,
+		for(int i = 0; i < 30; i++) world.step(1/60f, 6, 2);	// then simulates the world for half a second to put everything in place.
+		
+		for(Body orb: orbs) {							// Every orb in the simulation,
+			orbDataA = (OrbElement) orb.getUserData();	// has its user data accessed,
+			orbDataA.update(0);							// and is updated to sync its sprite with its physics body.
+		}
+		
+		currentMsg = displayMessage("Tap Screen to Start"); // Waits for user input before starting a game.
+	}
+	
+	public void endCurrentGame() {
+		// Display message that the game is over.
+		// Score any remaining selected orbs.
+		// clear the screen of all orbs.
+		// wait for all outstanding points to be tallied.
+		// If the player set a new highscore give them the opportunity to enter their name.
+		// Once entered display a message for them to play again.
 	}
 
 }
