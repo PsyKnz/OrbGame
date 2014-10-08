@@ -37,7 +37,6 @@ public class PlayScreen extends GameScreen {
 	private Array<Color> colorList = new Array<Color>(); // Array which contains the above colours in random order.
 	
 	private TouchTracker touchTracker;	// Reference to the object recording user input.
-	private ScoreBarElement scores;		// Reference to the object recording and displaying the players score.
 	private boolean gameOver = false;	// Flag used to determine if the game is over.
 	
 	private World world; 			// Reference to the box2d simulation world.
@@ -79,7 +78,7 @@ public class PlayScreen extends GameScreen {
 		orbAcceleration = spawnDistance * viewSize; // Sets the base acceleration rate for orbs.
 		
 		FreeTypeFontLoader.FreeTypeFontParameter p = new FreeTypeFontLoader.FreeTypeFontParameter();
-		p.size = 20;
+		p.size = 72;
 		game.assets.load("kenpixel_blocks.ttf", BitmapFont.class, p);
 		game.assets.load("white_circle.png", Texture.class);
 		game.assets.load("white_torus.png", Texture.class);
@@ -119,17 +118,6 @@ public class PlayScreen extends GameScreen {
 		camera.position.x = magnet.getPosition().x;	// Sets the x position of the camera to above the magnet.
 		camera.position.y = magnet.getPosition().y;	// Sets the y position of the camera to above the magnet.
 		camera.update();							// Updates the camera to put the changes into effect.
-		
-		float panelHeight = (camera.viewportHeight - viewSize) / 2;
-		Texture tex = game.assets.get("white_circle.png", Texture.class);
-		Sprite topPanel = new Sprite(tex, tex.getWidth() / 2, tex.getHeight() / 2, 1, 1);
-		topPanel.setBounds(0 - viewSize / 2, viewSize / 2, viewSize, panelHeight);
-		topPanel.setColor(Color.DARK_GRAY);
-		Sprite bottomPanel = new Sprite(tex, tex.getWidth() / 2, tex.getHeight() / 2, 1, 1);
-		bottomPanel.setBounds(0 - viewSize / 2, 0 - viewSize / 2 - panelHeight, viewSize, panelHeight);
-		bottomPanel.setColor(Color.DARK_GRAY);
-		BitmapFont font = game.assets.get("kenpixel_blocks.ttf", BitmapFont.class);
-		scores = new ScoreBarElement(topPanel, bottomPanel, font);
 		
 		uiCamera.viewportWidth = width;
 		uiCamera.viewportHeight = height;
@@ -181,7 +169,7 @@ public class PlayScreen extends GameScreen {
 			orbDataA.update(delta);						// and the position of its bounding box is updated.
 		}
 		
-		scores.update(delta);
+		ui.update(delta);
 	}
 	
 	@Override
@@ -205,8 +193,6 @@ public class PlayScreen extends GameScreen {
 			orbDataA = (OrbElement) orb.getUserData();							// has its user data accessed,
 			if(orbDataA.getPulse() != null) orbDataA.getPulse().draw(batch);	// and if it has a pulse its pulse is drawn.
 		}
-		
-		scores.draw(batch);
 		
 		if(debugOn) debug.draw(batch); // Draws an FPS counter in the top left coner of the screen if debug is on.
 		if(currentMsg != null) currentMsg.draw(batch);
@@ -276,7 +262,7 @@ public class PlayScreen extends GameScreen {
 	
 	// Scores all currently selected orbs and removes them from the game.
 	public void scoreSelectedOrbs() {
-		scores.addToScore((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);
+		ui.addToScore((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);
 		spawnRate *= 0.95f;
 		orbDataA = (OrbElement) selectedOrbs.peek().getUserData();
 		orbDataA.setState(OrbElement.State.SELECTED);

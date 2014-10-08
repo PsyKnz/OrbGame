@@ -12,24 +12,71 @@ public class TextElement {
 	public static final int CENTER = 1;				// Text can be horizontally aligned to the LEFT, CENTER, and RIGHT.
 	public static final int RIGHT = 2, BOTTOM = 2;	// Text can be vertically aligned to the TOP, CENTER, and BOTTOM.
 	
-	private String text;		// The text this element draws.
-	private BitmapFont font;	// The font used to draw the text.
-	private Vector2 pos;		// The position on the screen this element should be drawn.
-	private Rectangle bounds;	// Bounding box for the text.
+	private String text;			// The text this element draws.
+	private BitmapFont font;		// The font used to draw the text.
+	private Vector2 pos, scale;		// The position of the text element on the screen and a vector representing how it should be scaled.
+	private Rectangle bounds;		// Bounding box for the text. 
+	
+	public Color color = Color.WHITE; // The color the text element is set to.
 	
 	private int hAlign, vAlign; // Current horizontal and vertical alignment for the text (relative to its position).
 	
+	/** Creates a new TextElement with both its horizontal and vertical alignment as CENTER. 
+	 * @param text Text the element should display.
+	 * @param font The font used to draw the text.
+	 * @param x The x position of the text.
+	 * @param y The y position of the text. */
 	public TextElement(String text, BitmapFont font, float x, float y) {
+		this(text, font, x, y, CENTER, CENTER);
+	}
+	
+	public TextElement(String text, BitmapFont font, float x, float y, int hAlign, int vAlign) {
 		bounds = new Rectangle();	// Initialises the bounding box for the text.
 		pos = new Vector2(x, y);	// Sets the position of this element.
+		scale = new Vector2(1, 1);	// Sets the scale of the text element to its default size.
 		this.text = text;			// Sets the text this element displays.
-		hAlign = vAlign = CENTER;	// By default the text is aligned as CENTER, CENTER.
+		this.hAlign = hAlign;		// Sets the horizontal alignment of the text,
+		this.vAlign = vAlign;		// and its vertical alignment.
 		setFont(font);				// Sets the font used to draw this text.
 	}
 	
 	public void setFont(BitmapFont font) {
-		this.font = font;	// Sets the font used to draw the text.
-		setText(text);		// Resets the text to ensure the bounding box is updated accordingly.
+		setFont(font, 1, 1);	// Sets the new font and resets the scaling factor.
+	}
+	
+	public void setFont(BitmapFont font, float scaleX, float scaleY) {
+		this.font = font;			// Sets the font used to draw the text element.
+		setScale(scaleX, scaleY);	// Sets the scaling factor for the font.
+	}
+	
+	public void setScale(Vector2 scale) {
+		setScale(scale.x, scale.y);	// Sets this texts scale using the x and y values from the given scaling vector.
+	}
+	
+	public void setScale(float scaleX, float scaleY) {
+		scale.set(scaleX, scaleY);	// Sets the scaling factor for the text element,
+		setText(text);				// and resets the text to reconfigure its bounding box.
+	}
+	
+	/** Function to scale the text element so that it fits inside of a given area. Can be scaled on the x and y axis independently,
+	 * or uniformly; in which case the x and y are scaled by the same factor while staying inside the designated area. May leave
+	 * unfilled space.
+	 * @param area Rectangle representing the area of space you want the text to fill.
+	 * @param uniform True if the text should scale by the same amount on both the x and y axis. */
+	public void scaleToFit(Rectangle area, boolean uniform) {
+		setScale(1, 1);										// Resets the font to its natural scale.
+		float scaleX = area.width / bounds.width;			// Determines how much the x axis needs to be scaled by,
+		float scaleY = area.height / bounds.height;			// as well as the y axis.
+		if(uniform) {										// If scaling uniformly,
+			if(scaleX < scaleY) setScale(scaleX, scaleX);	// and the x axis scaling factor is smallest it is used.
+			else setScale(scaleY, scaleY);					// Otherwise the y axis scaling factor is used.
+		}
+		else setScale(scaleX, scaleY);	// If not scaling uniformly the x and y axis are adjusted independently.
+	}
+	
+	/** @return Returns a vector representing this texts scaling factor. */
+	public Vector2 getScale() {
+		return scale;
 	}
 	
 	/** Returns the font used by this element.
@@ -42,6 +89,7 @@ public class TextElement {
 	
 	public void setText(String text) {
 		this.text = text;											// Sets the text this element will draw.
+		font.setScale(scale.x, scale.y);							// Sets the fonts scaling factor to get its bounding box.
 		BitmapFont.TextBounds textBounds = font.getBounds(text);	// Determines the size of the text.
 		bounds.setSize(textBounds.width, textBounds.height);		// Sets the size of the bounding box to match the text,
 		setAlignment(hAlign, vAlign);								// and then re-aligns the text.
@@ -84,6 +132,8 @@ public class TextElement {
 	}
 	
 	public void draw(SpriteBatch batch) {
+		font.setColor(color);						// Sets the color the text will be drawn,
+		font.setScale(scale.x, scale.y);			// and its scale.
 		font.draw(batch, text, bounds.x, bounds.y);	// Draws the text to the screen.
 	}
 
