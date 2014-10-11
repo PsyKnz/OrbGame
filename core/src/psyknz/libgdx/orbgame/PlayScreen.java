@@ -51,8 +51,6 @@ public class PlayScreen extends GameScreen {
 	private GameDebug debug;					// Object to provide custom in-game debug options.
 	private Box2DDebugRenderer debugRenderer;	// Object to display debug information for the box2d simulation.
 	
-	private GameMessage currentMsg = null;	// Holds any currently displayed message.
-	
 	private Vector3 touchCoords = new Vector3(); // Vector3 used for processing and converting user touch co-ordinates.
 	private OrbElement orbDataA; // Member variable used to temporarily access orb data.
 	private Array<Body> selectedOrbs = new Array<Body>(); // Array to store orbs currently selected by the player.
@@ -96,7 +94,7 @@ public class PlayScreen extends GameScreen {
 		orbFixDef.density = 0.1f; 		// Sets the orbs density.
 		orbFixDef.restitution = 0.0f; 	// Sets the orbs restitution.
 		
-		ui = new UIElement(this);
+		ui = new UIElement(this, input);
 		uiCamera = new OrthographicCamera();
 		
 		if(debugOn) {									// If debug mode is enabled at start-up,
@@ -129,15 +127,16 @@ public class PlayScreen extends GameScreen {
 	@Override
 	public void resume() {
 		super.resume();
-		currentMsg = displayMessage("Tap Screen to Resume"); // Waits for user input before resuming a game.
+		ui.displayMessage("Tap Screen to Resume"); // Waits for user input before resuming a game.
 	}
 	
 	@Override
 	public void update(float delta) {
 		if(debugOn) debug.update(delta); // Updates the debugger.
 		
-		if(currentMsg != null) return; // If there is a message being displayed on screen then the rest of the update step is skipped.
 		if(gameOver) nextScreen = new PlayScreen(game);
+		
+		if(ui.update(delta)) return;
 		
 		spawnTimer -= delta;			// Counts down the spawn timer.
 		while(spawnTimer <= 0) {		// As long as the spawnTimer is less tha 0,
@@ -168,8 +167,6 @@ public class PlayScreen extends GameScreen {
 			orbDataA = (OrbElement) orb.getUserData();	// it's user data is acessed.
 			orbDataA.update(delta);						// and the position of its bounding box is updated.
 		}
-		
-		ui.update(delta);
 	}
 	
 	@Override
@@ -195,7 +192,6 @@ public class PlayScreen extends GameScreen {
 		}
 		
 		if(debugOn) debug.draw(batch); // Draws an FPS counter in the top left coner of the screen if debug is on.
-		if(currentMsg != null) currentMsg.draw(batch);
 	}
 	
 	@Override
@@ -285,7 +281,6 @@ public class PlayScreen extends GameScreen {
 	 * @see com.badlogic.gdx.InputAdapter#touchDown(int, int, int, int) */
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-		if(currentMsg != null) return true; // If a message is currently being displayed on the screen no user input is accepted.
 		
 		touchCoords.set(screenX, screenY, 0); 	// Sets the current co-ordinates for the users touch input.
 		camera.unproject(touchCoords); 			// Transforms the touch co-ordinates from screen space to world space.
@@ -309,7 +304,6 @@ public class PlayScreen extends GameScreen {
 	 * @see com.badlogic.gdx.InputAdapter#touchDragged(int, int, int) */
 	@Override
 	public boolean touchDragged(int screenX, int screenY, int pointer) {
-		if(currentMsg != null) return true; // If a message is currently being displayed on the screen no user input is accepted.
 		
 		if(selectedOrbs.size > 0 && pointer == fingerUsedToSelect) {// Only processed if the player currently has orbs selected.
 			touchCoords.set(screenX, screenY, 0); 					// Stores the co-ordinates where the player has touched the screen.
@@ -323,12 +317,7 @@ public class PlayScreen extends GameScreen {
 	/** Processes the player lifting their finger off of the screen. If the player has orbs selected they are scored for the player.
 	 * @see com.badlogic.gdx.InputAdapter#touchUp(int, int, int, int) */
 	@Override
-	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-		if(currentMsg != null) {	// If a message is currently being displayed,
-			currentMsg = null;		// it is removed from the screen.
-			return true; 			// No more input is accepted.
-		}
-		
+	public boolean touchUp(int screenX, int screenY, int pointer, int button) {		
 		if(selectedOrbs.size > 0 && pointer == fingerUsedToSelect) {	// If there are currently some orbs selected,
 			scoreSelectedOrbs();										// each selected orb is removed from the box2d simulation.
 			return true;
@@ -357,18 +346,8 @@ public class PlayScreen extends GameScreen {
 		return colorList.pop(); // Returns the color at the end of the list.
 	}
 	
-	public GameMessage displayMessage(String text) {
-		GameMessage msg = new GameMessage(text, game.assets.get("kenpixel_blocks.ttf", BitmapFont.class), magnet.getPosition().x, magnet.getPosition().y);
-		Texture tex = game.assets.get("white_circle.png", Texture.class);
-		Sprite msgBackgroundSpr = new Sprite(tex, tex.getWidth() / 2, tex.getHeight() / 2, 1, 1);
-		msgBackgroundSpr.setColor(Color.BLACK);
-		msgBackgroundSpr.setAlpha(0.75f);
-		msg.setBackground(msgBackgroundSpr, Gdx.graphics.getWidth(), 50);
-		return msg;
-	}
-	
 	public void gameOver(Body orb) {
-		currentMsg = displayMessage("Game Over");
+		ui.displayMessage("Game Over");
 		gameOver = true;
 		orbDataA = (OrbElement) orb.getUserData();
 		orbDataA.getSprite().setColor(Color.WHITE);
@@ -429,7 +408,7 @@ public class PlayScreen extends GameScreen {
 			orbDataA.update(0);							// and is updated to sync its sprite with its physics body.
 		}
 		
-		currentMsg = displayMessage("Tap Screen to Start"); // Waits for user input before starting a game.
+		ui.displayMessage("Tap Screen to Start"); // Waits for user input before starting a game.
 	}
 	
 	public void endCurrentGame() {

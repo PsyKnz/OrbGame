@@ -3,6 +3,7 @@ package psyknz.libgdx.orbgame;
 import psyknz.libgdx.architecture.*;
 
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -21,8 +22,12 @@ public class UIElement extends InputAdapter {
 	public static final int HIGHSCORE_ENTRIES = 10; // Maximum number of highscores the game keeps saved.
 	public static final float PANEL_PADDING = 10;	//
 	
-	private Sprite panelA, panelB, midLine;									// Sprites used to draw the top and bottom bars.
+	private InputMultiplexer input;				//
+	private OrthographicCamera camera = null;	//
+	
+	private Sprite panelA, panelB;											// Sprites used to draw the top and bottom bars.
 	private TextElement scoreLabel, highscoreLabel, scoreVal, highscoreVal; // Labels placed on the bars.
+	private GameButton pauseButton;											// Button used to pause the game.
 	
 	private int[] highscores;			// Array containing all of the current highscore values.
 	private String[] highscoreNames;	// Array containing all of the names tied to the respective highscores.
@@ -30,7 +35,11 @@ public class UIElement extends InputAdapter {
 	private int score = 0;			// Players current score.
 	private int pointsToAdd = 0;	// Number of points that need to be added to the score.
 	
-	public UIElement(GameScreen screen) {
+	private GameMessage suspendMessage = null;	//
+	
+	public UIElement(GameScreen screen, InputMultiplexer input) {
+		this.input = input;
+		
 		highscores = new int[HIGHSCORE_ENTRIES];		// Initialises the highscore array,
 		highscoreNames = new String[HIGHSCORE_ENTRIES];	// and the array of corresponding names.
 		loadHighscores();								// Loads saved highscores.
@@ -40,32 +49,38 @@ public class UIElement extends InputAdapter {
 		panelA.setColor(Color.DARK_GRAY);														// Sets the color of the panel.
 		panelB = new Sprite(panelA);															// Uses panel A as the template for panel B.
 		
+		pauseButton = new GameButton(new Sprite(panelA)) {
+			@Override
+			public void buttonAction() {
+				displayMessage("Game Paused");
+			}
+		};
+		pauseButton.sprite.setColor(Color.GRAY);
+		input.addProcessor(pauseButton);
+		
 		BitmapFont font = screen.getGame().assets.get("kenpixel_blocks.ttf", BitmapFont.class);							// Loads the font to use for drawing the UI's text elements.
 		scoreLabel = new TextElement("SCORE", font, 0, 0, TextElement.RIGHT, TextElement.CENTER);						// Generates the score label text,
 		scoreVal = new TextElement(valToText(score), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);				// the score text,
 		highscoreLabel = new TextElement("HIGHSCORE", font, 0, 0, TextElement.RIGHT, TextElement.CENTER);				// the highscore label text,
 		highscoreVal = new TextElement(valToText(highscores[0]), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);	// and the highscore value text.
-		
-		midLine = new Sprite(panelA);
-		midLine.setColor(Color.GREEN);
 	}
 	
 	/**
 	 * @param camera Camera object which will be drawing the UIElement. */
 	public void setViewport(OrthographicCamera camera) {
-		float vWidth = camera.viewportWidth;	// Finds the width of the viewport.
-		float vHeight = camera.viewportHeight;	// Finds the height of the viewport.
+		this.camera = camera;	//
 		
-		if(vWidth < vHeight) {								// If the viewport width is less than its height (portrait),
-			float panelHeight = (vHeight - vWidth) / 2;		//
-			panelA.setSize(vWidth, panelHeight);			//
-			panelA.setPosition(0, vHeight - panelHeight);	//
-			panelB.setSize(vWidth, panelHeight);			//
-			panelB.setPosition(0, 0);						//
+		if(camera.viewportWidth < camera.viewportHeight) {							// If the camera is in portrait,
+			float panelHeight = (camera.viewportHeight - camera.viewportWidth) / 2;	//
+			panelA.setSize(camera.viewportWidth, panelHeight);						//
+			panelA.setPosition(0, camera.viewportHeight - panelHeight);				//
+			panelB.setSize(camera.viewportWidth, panelHeight);						//
+			panelB.setPosition(0, 0);												//
 			
-			midLine.setBounds(vWidth / 2, 0, 1, vHeight);
+			pauseButton.camera = camera;
+			pauseButton.sprite.setBounds(PANEL_PADDING, panelA.getY() + PANEL_PADDING, panelHeight - PANEL_PADDING * 2, panelHeight - PANEL_PADDING * 2);	//
 			
-			Rectangle textZone = new Rectangle(0, 0, vWidth / 2 - 1.5f * PANEL_PADDING, panelHeight - 2 * PANEL_PADDING);	//
+			Rectangle textZone = new Rectangle(0, 0, camera.viewportWidth / 2 - 1.5f * PANEL_PADDING, panelHeight - 2 * PANEL_PADDING);	//
 			
 			highscoreLabel.scaleToFit(textZone, true);			//
 			highscoreVal.setScale(highscoreLabel.getScale());	//
@@ -76,17 +91,21 @@ public class UIElement extends InputAdapter {
 			scoreVal.setPosition(panelA.getWidth() - PANEL_PADDING, panelA.getY() + panelA.getHeight() / 2);
 			highscoreLabel.setPosition(panelB.getWidth() / 2 - PANEL_PADDING / 2, panelB.getY() + panelB.getHeight() / 2);
 			highscoreVal.setPosition(panelB.getWidth() - PANEL_PADDING, panelB.getY() + panelB.getHeight() / 2);
+			
+			if(suspendMessage != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportWidth * 0.2f) / 2, camera.viewportWidth, camera.viewportWidth * 0.2f);
 		}
-		else {											// Otherwise if the viewport height is less than its width (landscape),
-			float panelWidth = (vWidth - vHeight) / 2;	//
-			panelA.setSize(panelWidth, vHeight);		//
-			panelA.setPosition(0, 0);					//
-			panelB.setSize(panelWidth, vHeight);		//
-			panelB.setPosition(0, vWidth - panelWidth);	//
+		else {																		// Otherwise if the camera is in landscape,
+			float panelWidth = (camera.viewportWidth - camera.viewportHeight) / 2;	//
+			panelA.setSize(panelWidth, camera.viewportHeight);						//
+			panelA.setPosition(0, 0);												//
+			panelB.setSize(panelWidth, camera.viewportHeight);						//
+			panelB.setPosition(0, camera.viewportWidth - panelWidth);				//
+			
+			if(suspendMessage != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportHeight * 0.2f) / 2, camera.viewportWidth, camera.viewportHeight * 0.2f);
 		}
 	}
 	
-	public void update(float delta) {
+	public boolean update(float delta) {
 		if(pointsToAdd > 0) {										// If there are currently points which need to be added to the score,
 			score += MathUtils.ceil(ADD_POINT_SPEED * delta);		// they are added at the rate determined by ADD_POINT_SPEED,
 			pointsToAdd -= MathUtils.ceil(ADD_POINT_SPEED * delta);	// and subtracted from the points waiting to be added.
@@ -96,6 +115,10 @@ public class UIElement extends InputAdapter {
 			}
 		}		
 		scoreVal.setText(valToText(score));	// Updates the score being displayed by the scoreVal label.
+		
+		if(suspendMessage != null) return true;
+		
+		return false;
 	}
 	
 	/** Function to increase the number of points the player has. 
@@ -110,7 +133,7 @@ public class UIElement extends InputAdapter {
 	 * @return The string produced by the function. */
 	public static String valToText(int val) {
 		String text = "";								// Creates a new string to hold what's generated.
-		for(int i = NUMBERS_IN_SCORE; i > 0; i--) {	// For every character in the string,
+		for(int i = NUMBERS_IN_SCORE - 1; i >= 0; i--) {// For every character in the string,
 			if(Math.pow(10, i) > val) text += "0";		// if the value is less than the a positive value which would go in this spot, a 0 is put in the string.
 			else {										// Once the value is bigger,
 				text += val;							// it fills what remains of the string,
@@ -121,14 +144,17 @@ public class UIElement extends InputAdapter {
 	}
 	
 	public void draw(SpriteBatch batch) {
-		panelA.draw(batch);
-		panelB.draw(batch);
-		scoreLabel.draw(batch);
-		scoreVal.draw(batch);
-		highscoreLabel.draw(batch);
-		highscoreVal.draw(batch);
+		panelA.draw(batch);	// First draws the UI panels.
+		panelB.draw(batch);	//
 		
-		midLine.draw(batch);
+		scoreLabel.draw(batch);		// Then draws the score labels,
+		scoreVal.draw(batch);		// and values.
+		highscoreLabel.draw(batch);	//
+		highscoreVal.draw(batch);	//
+		
+		pauseButton.draw(batch);	// Draws the pause butto to screen last.
+		
+		if(suspendMessage != null) suspendMessage.draw(batch);
 	}
 	
 	/** Function to load highscores from the game preferences. */
@@ -147,5 +173,40 @@ public class UIElement extends InputAdapter {
 			scoreData.putInteger("highscore" + i, highscores[i]);		// the highscore is saved into the preferences,
 			scoreData.putString("name" + i, highscoreNames[i]);			// as is the corresponding name.
 		}
+	}
+	
+	/** Adds the current score to the highscore table.
+	 * @return The rank the score added acheived in the highscore table, or the size of the table if it didn't rank. */
+	public int addScoreToHighscores() {
+		for(int i = 0; i < HIGHSCORE_ENTRIES; i++) {				// Starts with the hihest highscore and works backwards.
+			if (score > highscores[i]) {							// If the current score is bigger than a score in the list,
+				for(int j = HIGHSCORE_ENTRIES - 1; j > i; j--) {	// then starting with the lowest score,
+					highscores[j] = highscores[j - 1];				// all scores after it are replaced by the score infront of them to make room.
+				}
+				highscores[i] = score;	// Stores the new highscore.
+				return i;				// Returns the index of rank of the score.
+			}
+		}
+		return HIGHSCORE_ENTRIES;	// If the score doesn't rate on the highscores then the max number of entries is returned.
+	}
+	
+	public void displayMessage(String text) {
+		Sprite msgBackgroundSpr = new Sprite(panelA);
+		msgBackgroundSpr.setColor(Color.BLACK);
+		msgBackgroundSpr.setAlpha(0.75f);
+		
+		TextElement message = new TextElement(text, scoreLabel.getFont(), 0, 0);
+		suspendMessage = new GameMessage(msgBackgroundSpr, message, this);
+		input.addProcessor(0, suspendMessage);
+		
+		if(camera != null) {
+			if(camera.viewportWidth > camera.viewportHeight) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportHeight * 0.2f) / 2, camera.viewportWidth, camera.viewportHeight * 0.2f);
+			else suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportWidth * 0.2f) / 2, camera.viewportWidth, camera.viewportWidth * 0.2f);
+		}
+	}
+	
+	public void removeMessage() {
+		input.removeProcessor(suspendMessage);
+		suspendMessage = null;
 	}
 }

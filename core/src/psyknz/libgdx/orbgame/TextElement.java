@@ -1,6 +1,7 @@
 package psyknz.libgdx.orbgame;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
@@ -12,10 +13,10 @@ public class TextElement {
 	public static final int CENTER = 1;				// Text can be horizontally aligned to the LEFT, CENTER, and RIGHT.
 	public static final int RIGHT = 2, BOTTOM = 2;	// Text can be vertically aligned to the TOP, CENTER, and BOTTOM.
 	
-	private String text;			// The text this element draws.
-	private BitmapFont font;		// The font used to draw the text.
-	private Vector2 pos, scale;		// The position of the text element on the screen and a vector representing how it should be scaled.
-	private Rectangle bounds;		// Bounding box for the text. 
+	private String text;		// The text this element draws.
+	private BitmapFont font;	// The font used to draw the text.
+	private Vector2 pos, scale;	// The position of the text element on the screen and a vector representing how it should be scaled.
+	private Rectangle bounds;	// Bounding box for the text.
 	
 	public Color color = Color.WHITE; // The color the text element is set to.
 	
@@ -64,9 +65,13 @@ public class TextElement {
 	 * @param area Rectangle representing the area of space you want the text to fill.
 	 * @param uniform True if the text should scale by the same amount on both the x and y axis. */
 	public void scaleToFit(Rectangle area, boolean uniform) {
+		scaleToFit(area.width, area.height, uniform);
+	}
+	
+	public void scaleToFit(float width, float height, boolean uniform) {
 		setScale(1, 1);										// Resets the font to its natural scale.
-		float scaleX = area.width / bounds.width;			// Determines how much the x axis needs to be scaled by,
-		float scaleY = area.height / bounds.height;			// as well as the y axis.
+		float scaleX = width / bounds.width;				// Determines how much the x axis needs to be scaled by,
+		float scaleY = height / bounds.height;				// as well as the y axis.
 		if(uniform) {										// If scaling uniformly,
 			if(scaleX < scaleY) setScale(scaleX, scaleX);	// and the x axis scaling factor is smallest it is used.
 			else setScale(scaleY, scaleY);					// Otherwise the y axis scaling factor is used.
@@ -131,7 +136,7 @@ public class TextElement {
 		return bounds; // Returns a reference to the texts bounding box.
 	}
 	
-	public void draw(SpriteBatch batch) {
+	public void draw(SpriteBatch batch) {		
 		font.setColor(color);						// Sets the color the text will be drawn,
 		font.setScale(scale.x, scale.y);			// and its scale.
 		font.draw(batch, text, bounds.x, bounds.y);	// Draws the text to the screen.

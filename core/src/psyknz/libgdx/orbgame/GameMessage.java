@@ -1,58 +1,57 @@
 package psyknz.libgdx.orbgame;
 
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Rectangle;
 
-public class GameMessage {
+public class GameMessage extends InputAdapter {
 	
-	private BitmapFont font;
-	private String text;
-	private Rectangle textBounds;
-	private Sprite background;	
-	private Vector2 pos;
+	public static final float PADDING_RATIO = 0.1f;	//
 	
-	public GameMessage(String text, BitmapFont font, float x, float y) {
-		this.font = font;
-		pos = new Vector2(x, y);
-		setText(text);
+	private TextElement message;	// Reference to the text element displaying the message.
+	private Sprite background;		// Reference to the sprite used to draw the background for the element.
+	private UIElement ui;			// Reference to the UI element this message is being managed by.
+
+	public GameMessage(Sprite background, TextElement message, UIElement ui) {
+		this.background = background;
+		this.message = message;
+		this.ui = ui;
 	}
 	
-	public void setText(String text) {
-		this.text = text;
-		BitmapFont.TextBounds bounds = font.getBounds(text);
-		textBounds = new Rectangle(pos.x - bounds.width / 2, pos.y - bounds.height / 2, bounds.width, bounds.height);
-	}
-	public void setFont(BitmapFont font) {
-		this.font = font;
-		setText(text);
+	public void setBounds(Rectangle bounds) {
+		setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
 	}
 	
-	public void setBackground(Sprite sprite, float width, float height) {
-		background = sprite;
-		background.setSize(width, height);
-		background.setCenter(pos.x, pos.y);
+	public void setBounds(float x, float y, float width, float height) {
+		background.setBounds(x, y, width, height);
+		
+		float paddingSize;
+		if(width < height) paddingSize = width * PADDING_RATIO;
+		else paddingSize = height * PADDING_RATIO;
+		
+		message.scaleToFit(width - paddingSize * 2, height - paddingSize * 2, true);
+		message.setPosition(x + width / 2, y + height / 2);
 	}
 	
 	public void draw(SpriteBatch batch) {
-		background.draw(batch);
-		font.draw(batch, text, textBounds.x, textBounds.y + textBounds.height);
+		background.draw(batch);	//
+		message.draw(batch);	//
 	}
 	
-	public void setPos(float x, float y) {
-		translatePos(x - pos.x, y - pos.y);
+	@Override
+	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+		return true;
 	}
 	
-	public void translatePos(float x, float y) {
-		pos.add(x, y);
-		if(background != null) background.translate(x, y);
-		textBounds.x += x;
-		textBounds.y += y;
+	@Override
+	public boolean touchDragged(int screenX, int screenY, int pointer) {
+		return true;
 	}
 	
-	public Vector2 getPos() {
-		return pos;
+	@Override
+	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+		ui.removeMessage();
+		return true;
 	}
 }
