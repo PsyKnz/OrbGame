@@ -1,6 +1,5 @@
 package psyknz.libgdx.orbgame;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -38,6 +37,7 @@ public class PlayScreen extends GameScreen {
 	
 	private TouchTracker touchTracker;	// Reference to the object recording user input.
 	private boolean gameOver = false;	// Flag used to determine if the game is over.
+	private boolean scoreOrbs = false;
 	
 	private World world; 			// Reference to the box2d simulation world.
 	private BodyDef orbBodyDef; 	// Default body definition for new orbs.
@@ -134,9 +134,11 @@ public class PlayScreen extends GameScreen {
 	public void update(float delta) {
 		if(debugOn) debug.update(delta); // Updates the debugger.
 		
-		if(gameOver) nextScreen = new PlayScreen(game);
+		if(scoreOrbs) scoreSelectedOrbs();
 		
 		if(ui.update(delta)) return;
+		
+		if(gameOver) nextScreen = new PlayScreen(game);
 		
 		spawnTimer -= delta;			// Counts down the spawn timer.
 		while(spawnTimer <= 0) {		// As long as the spawnTimer is less tha 0,
@@ -258,6 +260,11 @@ public class PlayScreen extends GameScreen {
 	
 	// Scores all currently selected orbs and removes them from the game.
 	public void scoreSelectedOrbs() {
+		if(world.isLocked()) {
+			scoreOrbs = true;
+			return;
+		}
+		scoreOrbs = false;
 		ui.addToScore((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);
 		spawnRate *= 0.95f;
 		orbDataA = (OrbElement) selectedOrbs.peek().getUserData();
@@ -348,9 +355,16 @@ public class PlayScreen extends GameScreen {
 	
 	public void gameOver(Body orb) {
 		ui.displayMessage("Game Over");
+		if(selectedOrbs.size > 0) scoreSelectedOrbs();
 		gameOver = true;
 		orbDataA = (OrbElement) orb.getUserData();
 		orbDataA.getSprite().setColor(Color.WHITE);
+		
+		// Score any remaining selected orbs.
+		// clear the screen of all orbs.
+		// wait for all outstanding points to be tallied.
+		// If the player set a new highscore give them the opportunity to enter their name.
+		// Once entered display a message for them to play again.
 	}
 	
 	/** Function to access the array containing all orbs the player currently has selected. 
@@ -409,15 +423,6 @@ public class PlayScreen extends GameScreen {
 		}
 		
 		ui.displayMessage("Tap Screen to Start"); // Waits for user input before starting a game.
-	}
-	
-	public void endCurrentGame() {
-		// Display message that the game is over.
-		// Score any remaining selected orbs.
-		// clear the screen of all orbs.
-		// wait for all outstanding points to be tallied.
-		// If the player set a new highscore give them the opportunity to enter their name.
-		// Once entered display a message for them to play again.
 	}
 
 }

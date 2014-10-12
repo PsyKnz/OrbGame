@@ -99,7 +99,7 @@ public class UIElement extends InputAdapter {
 			panelA.setSize(panelWidth, camera.viewportHeight);						//
 			panelA.setPosition(0, 0);												//
 			panelB.setSize(panelWidth, camera.viewportHeight);						//
-			panelB.setPosition(0, camera.viewportWidth - panelWidth);				//
+			panelB.setPosition(camera.viewportWidth - panelWidth, 0);				//
 			
 			if(suspendMessage != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportHeight * 0.2f) / 2, camera.viewportWidth, camera.viewportHeight * 0.2f);
 		}
