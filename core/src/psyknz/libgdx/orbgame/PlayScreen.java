@@ -7,26 +7,27 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.Body;
 
+import aurelienribon.tweenengine.Tween;
+import aurelienribon.tweenengine.TweenManager;
+
 import psyknz.libgdx.architecture.*;
 
 public class PlayScreen extends GameScreen {
 	
-	public static final float ORB_DIAMETER = 45;	// Size of the orbs in the game.
+	public static final float ORB_DIAMETER = 48;	// Size of the orbs in the game.
 	public static final int POINTS_PER_ORB = 10;	// Number of points earned per orb.
 	
 	private float spawnDistance;	// Distance from the magnet new orbs should be spawned at.
-	private float spawnRate = 1.0f;	// How frequently new orbs should spawn in seconds.
+	public float spawnRate = 1.0f;	// How frequently new orbs should spawn in seconds.
 	private float spawnTimer = 0;	// Tracks time in seconds until a new orb should spawn.
 	
 	private float orbAcceleration; // Variables to spawn, place, and move the orbs.
@@ -35,9 +36,7 @@ public class PlayScreen extends GameScreen {
 	private Color[] orbColors = {Color.BLUE, Color.PURPLE, Color.RED, Color.MAGENTA, Color.CYAN};
 	private Array<Color> colorList = new Array<Color>(); // Array which contains the above colours in random order.
 	
-	private TouchTracker touchTracker;	// Reference to the object recording user input.
-	private boolean gameOver = false;	// Flag used to determine if the game is over.
-	private boolean scoreOrbs = false;
+	private int gameOverStage = 0;		// Flag used to determine if the game is over.
 	
 	private World world; 			// Reference to the box2d simulation world.
 	private BodyDef orbBodyDef; 	// Default body definition for new orbs.
@@ -45,18 +44,11 @@ public class PlayScreen extends GameScreen {
 	private CircleShape orbShape; 	// Shape information for orbs and their sensors.
 	private Body border, magnet;	// References to the border and magnet object which are always present.
 	
-	private Array<Body> orbs = new Array<Body>(); // Creates a black Array to store references to bodies in the Box2D simulation.
-	
-	private boolean debugOn = false; 			// Flag to determine if the game is in debug mode.
-	private GameDebug debug;					// Object to provide custom in-game debug options.
-	private Box2DDebugRenderer debugRenderer;	// Object to display debug information for the box2d simulation.
-	
-	private Vector3 touchCoords = new Vector3(); // Vector3 used for processing and converting user touch co-ordinates.
+	private Array<Body> orbs = new Array<Body>(); // Creates a blank Array to store references to bodies in the Box2D simulation.
+	private PlayerController player;
+
 	private OrbElement orbDataA; // Member variable used to temporarily access orb data.
-	private Array<Body> selectedOrbs = new Array<Body>(); // Array to store orbs currently selected by the player.
-	private int fingerUsedToSelect;
 	private Body orbToAdd = null; // Flag to indicate an orb which should be added to the selection when possible.
-	private Array<Vector2> selectedCoords = new Array<Vector2>();
 	
 	private UIElement ui;					//
 	private OrthographicCamera uiCamera;	//
@@ -64,9 +56,6 @@ public class PlayScreen extends GameScreen {
 	public PlayScreen(GameCore game) {
 		super(game);
 		viewSize = 480; // Sets the length of the shortest screen edge in game units.
-		
-		input.addProcessor(this); 						// Adds the PlayScreen as an input processor for the game.
-		touchTracker = new TouchTracker(ORB_DIAMETER);	// Creates a TouchTracker to movement of the players finger across the screen.
 		
 		world = new World(new Vector2(0, 0), true);					// Creates the Box2D World space.
 		world.setContactListener(new OrbCollisionProcessor(this)); 	// Creates a new collision processor to listen to box2d contcts.
@@ -97,11 +86,8 @@ public class PlayScreen extends GameScreen {
 		ui = new UIElement(this, input);
 		uiCamera = new OrthographicCamera();
 		
-		if(debugOn) {									// If debug mode is enabled at start-up,
-			debug = new GameDebug(this, world);			// then a game debug object is initialised,
-			debugRenderer = new Box2DDebugRenderer();	// as is a box2d debug object.
-			input.addProcessor(0, debug);				// The GameDebug object becomes the primary input processor.
-		}
+		player = new PlayerController(world, ui, this);
+		input.addProcessor(player);
 	}
 	
 	@Override
@@ -122,6 +108,8 @@ public class PlayScreen extends GameScreen {
 		uiCamera.position.set(width / 2, height / 2, 0);
 		uiCamera.update();
 		ui.setViewport(uiCamera);
+		
+		player.setCamera(camera);
 	}
 	
 	@Override
@@ -131,24 +119,24 @@ public class PlayScreen extends GameScreen {
 	}
 	
 	@Override
-	public void update(float delta) {
-		if(debugOn) debug.update(delta); // Updates the debugger.
-		
-		if(scoreOrbs) scoreSelectedOrbs();
+	public void update(float delta) {		
+		if(gameOverStage > 0) {
+			player.scoreSelectedOrbs();
+			gameOverStage = 2;
+		}
 		
 		if(ui.update(delta)) return;
 		
-		if(gameOver) nextScreen = new PlayScreen(game);
+		if(gameOverStage > 1) {
+			for(Body orb : orbs) world.destroyBody(orb);
+			gameOverStage = 0;
+			generateNewGame();
+		}
 		
 		spawnTimer -= delta;			// Counts down the spawn timer.
 		while(spawnTimer <= 0) {		// As long as the spawnTimer is less tha 0,
 			createOrb();				// a new orb is created,
 			spawnTimer += spawnRate;	// and the timer is incremented by the spawn rate to the current spawn rate.
-		}
-		
-		touchTracker.interpolateCoords(selectedCoords, selectedOrbs.size, ORB_DIAMETER);				// Gets the co-ordinates for where selected orbs should be placed.
-		for(int i = 0; i < selectedOrbs.size; i++) {													// Each currently selected orb,
-			selectedOrbs.get(i).setTransform(selectedCoords.get(i), selectedOrbs.get(i).getAngle());	// Is placed along the array of the interpolated string of touchCoords.
 		}
 		
 		for (Body orb : orbs) {
@@ -160,9 +148,11 @@ public class PlayScreen extends GameScreen {
 		
 		world.step(1/60f, 6, 2); // Steps through the Box2D simulation.
 		
-		if(orbToAdd != null) {				// If an orb is flagged to be added to the selection,
-			addOrbToSelection(orbToAdd); 	// its added,
-			orbToAdd = null;				// and the flag is set back to null.
+		player.update();
+		
+		if(orbToAdd != null) {					// If an orb is flagged to be added to the selection,
+			player.addOrbToSelection(orbToAdd); // its added,
+			orbToAdd = null;					// and the flag is set back to null.
 		}
 		
 		for(Body orb: orbs) {							// For every orb in the simulation,
@@ -183,17 +173,12 @@ public class PlayScreen extends GameScreen {
 			orbDataA.getSprite().draw(batch);									// and is drawn to the screen.
 		}
 		
-		for(Body orb: selectedOrbs) {					// Every orb the user currently has selected,
-			orbDataA = (OrbElement) orb.getUserData();	// has its user data accessed,
-			orbDataA.getSprite().draw(batch);			// and is drawn to the screen.
-		}
+		player.draw(batch);
 		
 		for(Body orb: orbs) {													// Every orb on the screen,
 			orbDataA = (OrbElement) orb.getUserData();							// has its user data accessed,
 			if(orbDataA.getPulse() != null) orbDataA.getPulse().draw(batch);	// and if it has a pulse its pulse is drawn.
 		}
-		
-		if(debugOn) debug.draw(batch); // Draws an FPS counter in the top left coner of the screen if debug is on.
 	}
 	
 	@Override
@@ -204,8 +189,6 @@ public class PlayScreen extends GameScreen {
 		batch.begin();
 		ui.draw(batch);
 		batch.end();
-		
-		if(debugOn) debugRenderer.render(world, camera.combined); // Renders all Box2D entities if in debug mode.
 	}
 	
 	// Creates a new orb at a random location on the screen.
@@ -239,97 +222,11 @@ public class PlayScreen extends GameScreen {
 		orbToAdd = orb;
 	}
 	
-	// Adds the given orb to the list of currently selected orbs.
-	private void addOrbToSelection(Body orb) {
-		if(selectedOrbs.size > 0) {										// If there are already orbs selected by the player,
-			orbDataA = (OrbElement) selectedOrbs.peek().getUserData();	// the data for the last orb is selected,
-			orbDataA.setState(OrbElement.State.SELECTED);				// and its state is set to SELECTED (From ACTIVE_SELECTED).
-			orbDataA.getPulse().setPulseScale(1.3f);					// Reduces the pulse scale.
-		}
-		selectedOrbs.add(orb); 														// Adds the given orb to the selection,
-		orbDataA = (OrbElement) selectedOrbs.peek().getUserData();					// and accesses its user data.
-		orbDataA.setState(OrbElement.State.ACTIVE_SELECTED);						// It's state is set to ACTIVE_SELECTED.
-		Sprite pulseSprite = new Sprite(game.assets.get("white_torus.png", Texture.class));
-		pulseSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);
-		pulseSprite.setColor(orbDataA.getSprite().getColor());
-		orbDataA.setPulse(new PulseElement(pulseSprite, 2, 3, 0.8f, 0.0f));
-		touchTracker.setMaxLength(selectedOrbs.size * ORB_DIAMETER + ORB_DIAMETER); // Increases the length of the TouchTracker to accomodate another orb.
-		orb.setType(BodyDef.BodyType.StaticBody);									// Sets the selected orb to static so that it isn't effected by forces.
-		orb.getFixtureList().first().setSensor(true);								// Sets the selected orb as a sensor so that it can drag over orbs.
-	}
-	
-	// Scores all currently selected orbs and removes them from the game.
-	public void scoreSelectedOrbs() {
-		if(world.isLocked()) {
-			scoreOrbs = true;
-			return;
-		}
-		scoreOrbs = false;
-		ui.addToScore((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);
-		spawnRate *= 0.95f;
-		orbDataA = (OrbElement) selectedOrbs.peek().getUserData();
-		orbDataA.setState(OrbElement.State.SELECTED);
-		for(Body orb : selectedOrbs) world.destroyBody(orb);	// Every currently selected orb is removed from the box2d simulation.
-		selectedOrbs.clear();
-		touchTracker.setMaxLength(ORB_DIAMETER);				// Resets the length of the touchTracker to the diameter of an orb.
-		world.getBodies(orbs); 									// Refreshes the list of box2d elements in the simulation.
-	}
-	
 	@Override
 	public void dispose() {
-		if(debugOn) debugRenderer.dispose(); 	// Disposes of the debugRenderer if there is one.
 		orbShape.dispose(); 					// Disposes of the orbs circle information.
 		world.dispose();						// Disposes of the box2d simulation object.
 		super.dispose();
-	}
-	
-	/** Processes the player touching down on the screen. If the player touches on top of an orb it becomes selected so that it can
-	 *  follow the users finger across the screen. 
-	 * @see com.badlogic.gdx.InputAdapter#touchDown(int, int, int, int) */
-	@Override
-	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-		
-		touchCoords.set(screenX, screenY, 0); 	// Sets the current co-ordinates for the users touch input.
-		camera.unproject(touchCoords); 			// Transforms the touch co-ordinates from screen space to world space.
-		
-		for(Body orb : orbs) { 														// Every orb is checked,
-			if(orb.getType() == BodyDef.BodyType.DynamicBody) { 					// to see if it has a Dynamic body.
-				orbDataA = (OrbElement) orb.getUserData(); 							// If it does, it's OrbElement is accessed,
-				if(orbDataA.getBounds().contains(touchCoords.x, touchCoords.y)) {	// and its bounding box is tested against the touch co-ordinates.
-					fingerUsedToSelect = pointer;
-					addOrbToSelection(orb);											// If the player touched inside the bounding box, the orb becomes selected.
-					touchTracker.addTouch(touchCoords.x, touchCoords.y);			// Adds the current touch-coordinate to the TouchTracker.
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
-	/** Processes the player dragging their finger across the screen. Provided the player currently has some orbs selected the movement
-	 *  is recorded by the touchTracker object.
-	 * @see com.badlogic.gdx.InputAdapter#touchDragged(int, int, int) */
-	@Override
-	public boolean touchDragged(int screenX, int screenY, int pointer) {
-		
-		if(selectedOrbs.size > 0 && pointer == fingerUsedToSelect) {// Only processed if the player currently has orbs selected.
-			touchCoords.set(screenX, screenY, 0); 					// Stores the co-ordinates where the player has touched the screen.
-			camera.unproject(touchCoords); 							// Transforms the touch co-ordinates from screen space to world space.
-			touchTracker.addTouch(touchCoords.x, touchCoords.y);	// Adds the current touch-coordinate to the TouchTracker.
-			return true;
-		}
-		return false;
-	}
-	
-	/** Processes the player lifting their finger off of the screen. If the player has orbs selected they are scored for the player.
-	 * @see com.badlogic.gdx.InputAdapter#touchUp(int, int, int, int) */
-	@Override
-	public boolean touchUp(int screenX, int screenY, int pointer, int button) {		
-		if(selectedOrbs.size > 0 && pointer == fingerUsedToSelect) {	// If there are currently some orbs selected,
-			scoreSelectedOrbs();										// each selected orb is removed from the box2d simulation.
-			return true;
-		}
-		return false;
 	}
 	
 	private void placeRingOfOrbs(int num, float offset) {
@@ -355,27 +252,9 @@ public class PlayScreen extends GameScreen {
 	
 	public void gameOver(Body orb) {
 		ui.displayMessage("Game Over");
-		if(selectedOrbs.size > 0) scoreSelectedOrbs();
-		gameOver = true;
-		orbDataA = (OrbElement) orb.getUserData();
-		orbDataA.getSprite().setColor(Color.WHITE);
-		
-		// Score any remaining selected orbs.
-		// clear the screen of all orbs.
-		// wait for all outstanding points to be tallied.
-		// If the player set a new highscore give them the opportunity to enter their name.
-		// Once entered display a message for them to play again.
+		gameOverStage = 1;
 	}
 	
-	/** Function to access the array containing all orbs the player currently has selected. 
-	 * @return Reference to the array recording which orbs the player currently has selected. */
-	public Array<Body> getSelectedOrbs() {
-		return selectedOrbs;
-	}
-	
-	/**
-	 * 
-	 */
 	public void generateNewGame() {
 		BodyDef magnetDef = new BodyDef(); 				// Creates a new body definition for the magnet,
 		magnetDef.type = BodyDef.BodyType.StaticBody;	// as static,
@@ -423,6 +302,10 @@ public class PlayScreen extends GameScreen {
 		}
 		
 		ui.displayMessage("Tap Screen to Start"); // Waits for user input before starting a game.
+	}
+	
+	public Array<Body> getOrbs() {
+		return orbs;
 	}
 
 }

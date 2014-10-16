@@ -205,8 +205,8 @@ public class UIElement extends InputAdapter {
 		}
 	}
 	
-	public void removeMessage() {
-		input.removeProcessor(suspendMessage);
+	public void removeMessage(GameMessage message) {
+		input.removeProcessor(message);
 		suspendMessage = null;
 	}
 }
