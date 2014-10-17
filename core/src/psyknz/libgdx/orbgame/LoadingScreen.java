@@ -1,11 +1,16 @@
 package psyknz.libgdx.orbgame;
 
+import psyknz.libgdx.orbgame.tweenaccessors.*;
+
+import psyknz.libgdx.architecture.*;
+
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 
-import psyknz.libgdx.architecture.*;
+import aurelienribon.tweenengine.Tween;
 
 public class LoadingScreen extends GameScreen {
 	
@@ -24,6 +29,8 @@ public class LoadingScreen extends GameScreen {
 		
 		game.assets.load("white_circle.png", Texture.class);	// Queues loading the sprite for the orbs,
 		game.assets.load("white_torus.png", Texture.class);		// and for the pulses.
+		
+		Tween.registerAccessor(Color.class, new ColorTween());	// Registers the accessor to use for tweening Color values.
 	}
 	
 	@Override

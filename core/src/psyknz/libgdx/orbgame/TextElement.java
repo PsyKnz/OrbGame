@@ -18,7 +18,7 @@ public class TextElement {
 	private Vector2 pos, scale;	// The position of the text element on the screen and a vector representing how it should be scaled.
 	private Rectangle bounds;	// Bounding box for the text.
 	
-	public Color color = Color.WHITE; // The color the text element is set to.
+	public Color color = new Color(Color.WHITE); // The color the text element is set to.
 	
 	private int hAlign, vAlign; // Current horizontal and vertical alignment for the text (relative to its position).
 	
@@ -34,7 +34,7 @@ public class TextElement {
 	public TextElement(String text, BitmapFont font, float x, float y, int hAlign, int vAlign) {
 		bounds = new Rectangle();	// Initialises the bounding box for the text.
 		pos = new Vector2(x, y);	// Sets the position of this element.
-		scale = new Vector2(1, 1);	// Sets the scale of the text element to its default size.
+		scale = new Vector2();		// Sets the scale of the text element to its default size.
 		this.text = text;			// Sets the text this element displays.
 		this.hAlign = hAlign;		// Sets the horizontal alignment of the text,
 		this.vAlign = vAlign;		// and its vertical alignment.

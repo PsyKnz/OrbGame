@@ -1,4 +1,4 @@
-package psyknz.libgdx.orbgame;
+package psyknz.libgdx.orbgame.tweenaccessors;
 
 import aurelienribon.tweenengine.TweenAccessor;
 

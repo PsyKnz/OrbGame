@@ -12,6 +12,9 @@ public class GameMessage extends InputAdapter {
 	private TextElement message;	// Reference to the text element displaying the message.
 	private Sprite background;		// Reference to the sprite used to draw the background for the element.
 	private UIElement ui;			// Reference to the UI element this message is being managed by.
+	
+	private boolean inputEnabled = false;
+	private TextElement inputMessage = null;
 
 	public GameMessage(Sprite background, TextElement message, UIElement ui) {
 		this.background = background;
@@ -32,11 +35,18 @@ public class GameMessage extends InputAdapter {
 		
 		message.scaleToFit(width - paddingSize * 2, height - paddingSize * 2, true);
 		message.setPosition(x + width / 2, y + height / 2);
+		
+		if(inputMessage != null) {
+			inputMessage.scaleToFit(width - paddingSize * 2, height - paddingSize * 2, true);
+			inputMessage.setPosition(x + width / 2, message.getBounds().y - message.getBounds().height - paddingSize);
+		}
 	}
 	
 	public void draw(SpriteBatch batch) {
 		background.draw(batch);	//
 		message.draw(batch);	//
+		
+		if(inputMessage != null) inputMessage.draw(batch);
 	}
 	
 	@Override
@@ -51,7 +61,13 @@ public class GameMessage extends InputAdapter {
 	
 	@Override
 	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-		ui.removeMessage(this);
+		if(inputEnabled) ui.removeMessage(this);
 		return true;
+	}
+	
+	public void enableInput(TextElement inputMessage) {
+		this.inputMessage = inputMessage;
+		inputMessage.setAlignment(TextElement.CENTER, TextElement.TOP);
+		inputEnabled = true;
 	}
 }

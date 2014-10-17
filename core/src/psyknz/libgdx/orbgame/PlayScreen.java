@@ -23,7 +23,7 @@ import psyknz.libgdx.architecture.*;
 
 public class PlayScreen extends GameScreen {
 	
-	public static final float ORB_DIAMETER = 48;	// Size of the orbs in the game.
+	public static final float ORB_DIAMETER = 52;	// Size of the orbs in the game.
 	public static final int POINTS_PER_ORB = 10;	// Number of points earned per orb.
 	
 	private float spawnDistance;	// Distance from the magnet new orbs should be spawned at.
@@ -115,6 +115,9 @@ public class PlayScreen extends GameScreen {
 	public void update(float delta) {		
 		if(gameOverStage > 0) {
 			player.scoreSelectedOrbs();
+			ui.addAllOutstandingPoints();
+			ui.addScoreToHighscores();
+			ui.saveHighscores();
 			gameOverStage = 2;
 		}
 		
@@ -122,6 +125,8 @@ public class PlayScreen extends GameScreen {
 		
 		if(gameOverStage > 1) {
 			for(Body orb : orbs) world.destroyBody(orb);
+			ui.resetScore();
+			spawnRate = 1;
 			gameOverStage = 0;
 			generateNewGame();
 		}
@@ -294,7 +299,7 @@ public class PlayScreen extends GameScreen {
 			orbDataA.update(0);							// and is updated to sync its sprite with its physics body.
 		}
 		
-		ui.displayMessage("Tap Screen to Start"); // Waits for user input before starting a game.
+		ui.displayMessage("Play Game"); // Waits for user input before starting a game.
 	}
 	
 	public Array<Body> getOrbs() {

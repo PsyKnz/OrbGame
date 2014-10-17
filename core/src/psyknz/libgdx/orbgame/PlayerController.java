@@ -14,7 +14,8 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 
 public class PlayerController extends InputAdapter {
 	
-	public static final int POINTS_PER_ORB = 10;	// Point value of each orb which is scored.
+	public static final int POINTS_PER_ORB = 10;		// Point value of each orb which is scored.
+	public static final float SELECTED_ORB_DIAMETER = PlayScreen.ORB_DIAMETER * 1.25f;
 	
 	private VectorTracker touches;		// VectorTracker recording all user input co-ordinates.
 	private UIElement ui;				// Reference to the UIElement for this game.
@@ -32,10 +33,10 @@ public class PlayerController extends InputAdapter {
 	
 	public PlayerController(World world, UIElement ui, PlayScreen screen) {
 		this.world = world;
-		touches = new VectorTracker(PlayScreen.ORB_DIAMETER);	// Creates a new VectorTracker to track touch input.
-		this.ui = ui;											// Sets the UI element the controller reports scores to.
-		this.screen = screen;									// Sets the screen this element is on.
-		selectedOrbs = new Array<Body>();						// Initialises the array recording what orbs the player has selected.
+		touches = new VectorTracker(SELECTED_ORB_DIAMETER);	// Creates a new VectorTracker to track touch input.
+		this.ui = ui;										// Sets the UI element the controller reports scores to.
+		this.screen = screen;								// Sets the screen this element is on.
+		selectedOrbs = new Array<Body>();					// Initialises the array recording what orbs the player has selected.
 	}
 	
 	/** Sets the camera to use when converting touch input to in-game units.
@@ -62,13 +63,16 @@ public class PlayerController extends InputAdapter {
 		orbData = (OrbElement) orb.getUserData();			// and accesses its user data,
 		orbData.setState(OrbElement.State.ACTIVE_SELECTED);	// to set its state to ACTIVE_SELECTED.
 		
-		Sprite pulseSprite = new Sprite(orbData.getSprite());				// Creates a new sprite to use as the orbs pulse.
-		orbData.setPulse(new PulseElement(pulseSprite, 2, 3, 0.8f, 0.0f));	// Sets the pulse for the newly selected orb. 
-		
 		// Increases the distance of recorded touch inputs to accomodate for a longer chain of selected orbs.
-		touches.setDistance(selectedOrbs.size * PlayScreen.ORB_DIAMETER + PlayScreen.ORB_DIAMETER);
+		touches.setDistance(selectedOrbs.size * SELECTED_ORB_DIAMETER + SELECTED_ORB_DIAMETER);
 		orb.setType(BodyDef.BodyType.StaticBody);		// Sets the selected orb to static so that it isn't affected by forces.
 		orb.getFixtureList().first().setSensor(true);	// Sets the selected orb as a sensor so that it doesn't automatically collide.
+		
+		orb.getFixtureList().first().getShape().setRadius(SELECTED_ORB_DIAMETER);
+		orbData.getSprite().setSize(SELECTED_ORB_DIAMETER, SELECTED_ORB_DIAMETER);
+		
+		Sprite pulseSprite = new Sprite(orbData.getSprite());				// Creates a new sprite to use as the orbs pulse.
+		orbData.setPulse(new PulseElement(pulseSprite, 2, 3, 0.8f, 0.0f));	// Sets the pulse for the newly selected orb.
 	}
 	
 	/** Scores all currently selected orbs and removes them from the game. */
@@ -81,7 +85,7 @@ public class PlayerController extends InputAdapter {
 		orbData.setState(OrbElement.State.SELECTED);							// and it is set to SELECTED to prevent further endCollision calls.
 		for(Body orb : selectedOrbs) world.destroyBody(orb);					// Every selected orb is removed from the box2d simulation,
 		selectedOrbs.clear();													// and the array of selected orbs is cleared.
-		touches.setDistance(PlayScreen.ORB_DIAMETER);							// Finally the input tracking distance is reset.
+		touches.setDistance(SELECTED_ORB_DIAMETER);								// Finally the input tracking distance is reset.
 		world.getBodies(screen.getOrbs());										// Updates the list of bodies managed by the screen.
 	}
 	
@@ -144,7 +148,7 @@ public class PlayerController extends InputAdapter {
 			orbToAdd = null;				// and the queue is cleared.
 		}
 		
-		touches.interpolateCoords(drawCoords, selectedOrbs.size, PlayScreen.ORB_DIAMETER);			// Interpolates an evenly spaced set of co-ordinates matching the users input.
+		touches.interpolateCoords(drawCoords, selectedOrbs.size, SELECTED_ORB_DIAMETER);			// Interpolates an evenly spaced set of co-ordinates matching the users input.
 		for(int i = 0; i < selectedOrbs.size; i++) {												// Each selected orb,
 			selectedOrbs.get(i).setTransform(drawCoords.get(i), selectedOrbs.get(i).getAngle());	// is placed along tose co-ordinates.
 		}

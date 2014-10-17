@@ -1,6 +1,7 @@
 package psyknz.libgdx.orbgame;
 
 import psyknz.libgdx.architecture.*;
+import psyknz.libgdx.orbgame.tweenaccessors.ColorTween;
 
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputMultiplexer;
@@ -15,6 +16,9 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 
+import aurelienribon.tweenengine.Tween;
+import aurelienribon.tweenengine.TweenManager;
+
 public class UIElement extends InputAdapter {
 	
 	public static final int ADD_POINT_SPEED = 1000; // Number of points to add to the score total per second.
@@ -24,6 +28,7 @@ public class UIElement extends InputAdapter {
 	
 	private InputMultiplexer input;				//
 	private OrthographicCamera camera = null;	//
+	private TweenManager manager;				//
 	
 	private Sprite panelA, panelB;											// Sprites used to draw the top and bottom bars.
 	private TextElement scoreLabel, highscoreLabel, scoreVal, highscoreVal; // Labels placed on the bars.
@@ -39,6 +44,7 @@ public class UIElement extends InputAdapter {
 	
 	public UIElement(GameScreen screen, InputMultiplexer input) {
 		this.input = input;
+		manager = new TweenManager();
 		
 		highscores = new int[HIGHSCORE_ENTRIES];		// Initialises the highscore array,
 		highscoreNames = new String[HIGHSCORE_ENTRIES];	// and the array of corresponding names.
@@ -94,8 +100,6 @@ public class UIElement extends InputAdapter {
 			scoreVal.setPosition(panelA.getWidth() - paddingSize, panelA.getY() + panelA.getHeight() / 2);
 			highscoreLabel.setPosition(panelB.getWidth() / 2 - paddingSize / 2, panelB.getY() + panelB.getHeight() / 2);
 			highscoreVal.setPosition(panelB.getWidth() - paddingSize, panelB.getY() + panelB.getHeight() / 2);
-			
-			if(suspendMessage != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportWidth * 0.2f) / 2, camera.viewportWidth, camera.viewportWidth * 0.2f);
 		}
 		else {																		// Otherwise if the camera is in landscape,
 			float panelWidth = (camera.viewportWidth - camera.viewportHeight) / 2;	//
@@ -103,31 +107,40 @@ public class UIElement extends InputAdapter {
 			panelA.setPosition(0, 0);												//
 			panelB.setSize(panelWidth, camera.viewportHeight);						//
 			panelB.setPosition(camera.viewportWidth - panelWidth, 0);				//
-			
-			if(suspendMessage != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportHeight * 0.2f) / 2, camera.viewportWidth, camera.viewportHeight * 0.2f);
 		}
+		
+		if(camera != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2,
+				camera.position.y - camera.viewportHeight / 2, camera.viewportWidth, camera.viewportHeight);
 	}
 	
 	public boolean update(float delta) {
+		manager.update(delta);	// Processes all tweens that are part of the UI.
+		
 		if(pointsToAdd > 0) {										// If there are currently points which need to be added to the score,
 			score += MathUtils.ceil(ADD_POINT_SPEED * delta);		// they are added at the rate determined by ADD_POINT_SPEED,
 			pointsToAdd -= MathUtils.ceil(ADD_POINT_SPEED * delta);	// and subtracted from the points waiting to be added.
-			if(pointsToAdd < 0) {									// Once too many points have been added,
-				score += pointsToAdd;								// the score adds the negative number to balance,
-				pointsToAdd = 0;									// and points waiting to be added is set to 0.
-			}
+			if(pointsToAdd < 0) addAllOutstandingPoints();			// If too many points are added then the score is balanced.
 		}		
 		scoreVal.setText(valToText(score));	// Updates the score being displayed by the scoreVal label.
 		
-		if(suspendMessage != null) return true;
-		
-		return false;
+		if(suspendMessage != null) return true; // If the game is suspended with a message returns true to stop further update calls.
+		else return false;						// Otherwise false is returned to keep the game running.
 	}
 	
 	/** Function to increase the number of points the player has. 
 	 * @param points The number of points to be added to the score. */
 	public void addToScore(int points) {
 		pointsToAdd += points;	// Increases the number of points waiting to be added to the score.
+	}
+	
+	/** Forces all points waiting to be added to the score to be added immediately. Can be used to balance negative outstanding points. */
+	public void addAllOutstandingPoints() {
+		score += pointsToAdd;	// Adds all outstanding points to the score.
+		pointsToAdd = 0;		// Then resets points waiting to be added to 0.
+	}
+	
+	public void resetScore() {
+		score = 0;
 	}
 	
 	/** Function to convert integer values into string with a pre-defined number of characters. For example 1234 with 7 characters would
@@ -176,6 +189,7 @@ public class UIElement extends InputAdapter {
 			scoreData.putInteger("highscore" + i, highscores[i]);		// the highscore is saved into the preferences,
 			scoreData.putString("name" + i, highscoreNames[i]);			// as is the corresponding name.
 		}
+		scoreData.flush();
 	}
 	
 	/** Adds the current score to the highscore table.
@@ -186,8 +200,9 @@ public class UIElement extends InputAdapter {
 				for(int j = HIGHSCORE_ENTRIES - 1; j > i; j--) {	// then starting with the lowest score,
 					highscores[j] = highscores[j - 1];				// all scores after it are replaced by the score infront of them to make room.
 				}
-				highscores[i] = score;	// Stores the new highscore.
-				return i;				// Returns the index of rank of the score.
+				highscores[i] = score;							// Stores the new highscore.
+				highscoreVal.setText(valToText(highscores[0]));	// Updates the highscore value displayed on the screen.
+				return i;										// Returns the index of rank of the score.
 			}
 		}
 		return HIGHSCORE_ENTRIES;	// If the score doesn't rate on the highscores then the max number of entries is returned.
@@ -202,10 +217,13 @@ public class UIElement extends InputAdapter {
 		suspendMessage = new GameMessage(msgBackgroundSpr, message, this);
 		input.addProcessor(0, suspendMessage);
 		
-		if(camera != null) {
-			if(camera.viewportWidth > camera.viewportHeight) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportHeight * 0.2f) / 2, camera.viewportWidth, camera.viewportHeight * 0.2f);
-			else suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportWidth * 0.2f) / 2, camera.viewportWidth, camera.viewportWidth * 0.2f);
-		}
+		TextElement inputMessage = new TextElement("Tap screen to play", scoreLabel.getFont(), 0, 0);
+		inputMessage.color.a = 0;
+		Tween.to(inputMessage.color, ColorTween.COLOR_ALPHA, 0.75f).target(1).repeatYoyo(-1, 0).start(manager);
+		suspendMessage.enableInput(inputMessage);
+		
+		if(camera != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2,
+				camera.position.y - camera.viewportHeight / 2, camera.viewportWidth, camera.viewportHeight);
 	}
 	
 	public void removeMessage(GameMessage message) {
