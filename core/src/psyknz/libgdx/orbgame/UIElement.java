@@ -20,7 +20,7 @@ public class UIElement extends InputAdapter {
 	public static final int ADD_POINT_SPEED = 1000; // Number of points to add to the score total per second.
 	public static final int NUMBERS_IN_SCORE = 8;	// Number of numbers which should be displayed in the score.
 	public static final int HIGHSCORE_ENTRIES = 10; // Maximum number of highscores the game keeps saved.
-	public static final float PANEL_PADDING = 10;	//
+	public static final float PADDING_RATIO = 0.1f;	//
 	
 	private InputMultiplexer input;				//
 	private OrthographicCamera camera = null;	//
@@ -78,19 +78,22 @@ public class UIElement extends InputAdapter {
 			panelB.setPosition(0, 0);												//
 			
 			pauseButton.camera = camera;
-			pauseButton.sprite.setBounds(PANEL_PADDING, panelA.getY() + PANEL_PADDING, panelHeight - PANEL_PADDING * 2, panelHeight - PANEL_PADDING * 2);	//
+			float paddingSize;
+			if(panelA.getWidth() > panelA.getHeight()) paddingSize = panelA.getHeight() * PADDING_RATIO;
+			else paddingSize = panelA.getWidth() * PADDING_RATIO;
+			pauseButton.sprite.setBounds(paddingSize, panelA.getY() + paddingSize, panelHeight - paddingSize * 2, panelHeight - paddingSize * 2);	//
 			
-			Rectangle textZone = new Rectangle(0, 0, camera.viewportWidth / 2 - 1.5f * PANEL_PADDING, panelHeight - 2 * PANEL_PADDING);	//
+			Rectangle textZone = new Rectangle(0, 0, camera.viewportWidth / 2 - 1.5f * paddingSize, panelHeight - 2 * paddingSize);	//
 			
 			highscoreLabel.scaleToFit(textZone, true);			//
 			highscoreVal.setScale(highscoreLabel.getScale());	//
 			scoreLabel.setScale(highscoreLabel.getScale());		//
 			scoreVal.setScale(highscoreLabel.getScale());		//
 			
-			scoreLabel.setPosition(panelA.getWidth() / 2 - PANEL_PADDING / 2, panelA.getY() + panelA.getHeight() / 2);
-			scoreVal.setPosition(panelA.getWidth() - PANEL_PADDING, panelA.getY() + panelA.getHeight() / 2);
-			highscoreLabel.setPosition(panelB.getWidth() / 2 - PANEL_PADDING / 2, panelB.getY() + panelB.getHeight() / 2);
-			highscoreVal.setPosition(panelB.getWidth() - PANEL_PADDING, panelB.getY() + panelB.getHeight() / 2);
+			scoreLabel.setPosition(panelA.getWidth() / 2 - paddingSize / 2, panelA.getY() + panelA.getHeight() / 2);
+			scoreVal.setPosition(panelA.getWidth() - paddingSize, panelA.getY() + panelA.getHeight() / 2);
+			highscoreLabel.setPosition(panelB.getWidth() / 2 - paddingSize / 2, panelB.getY() + panelB.getHeight() / 2);
+			highscoreVal.setPosition(panelB.getWidth() - paddingSize, panelB.getY() + panelB.getHeight() / 2);
 			
 			if(suspendMessage != null) suspendMessage.setBounds(camera.position.x - camera.viewportWidth / 2, camera.position.y - (camera.viewportWidth * 0.2f) / 2, camera.viewportWidth, camera.viewportWidth * 0.2f);
 		}

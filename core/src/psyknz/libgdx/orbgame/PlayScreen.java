@@ -64,13 +64,6 @@ public class PlayScreen extends GameScreen {
 		spawnDistance = (float) Math.sqrt(Math.pow(viewSize / 2, 2) + Math.pow(viewSize / 2, 2)) + ORB_DIAMETER;
 		orbAcceleration = spawnDistance * viewSize; // Sets the base acceleration rate for orbs.
 		
-		FreeTypeFontLoader.FreeTypeFontParameter p = new FreeTypeFontLoader.FreeTypeFontParameter();
-		p.size = 72;
-		game.assets.load("kenpixel_blocks.ttf", BitmapFont.class, p);
-		game.assets.load("white_circle.png", Texture.class);
-		game.assets.load("white_torus.png", Texture.class);
-		game.assets.finishLoading();
-		
 		orbShape = new CircleShape(); 			// Creates the circle shape used to define orbs.
 		orbShape.setRadius(ORB_DIAMETER / 2); 	// Sets the radius of all circles based on the pre-defined ORB_DIAMETER.
 		
