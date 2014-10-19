@@ -22,10 +22,11 @@ import aurelienribon.tweenengine.TweenManager;
 public class UIElement extends InputAdapter {
 	
 	public static final int ADD_POINT_SPEED = 1000; // Number of points to add to the score total per second.
-	public static final int NUMBERS_IN_SCORE = 8;	// Number of numbers which should be displayed in the score.
+	public static final int NUMBERS_IN_SCORE = 7;	// Number of numbers which should be displayed in the score.
 	public static final int HIGHSCORE_ENTRIES = 10; // Maximum number of highscores the game keeps saved.
 	public static final float PADDING_RATIO = 0.1f;	//
 	
+	private PlayScreen screen;
 	private InputMultiplexer input;				//
 	private OrthographicCamera camera = null;	//
 	private TweenManager manager;				//
@@ -42,9 +43,10 @@ public class UIElement extends InputAdapter {
 	
 	private GameMessage suspendMessage = null;	//
 	
-	public UIElement(GameScreen screen, InputMultiplexer input) {
+	public UIElement(PlayScreen scr, InputMultiplexer input) {
 		this.input = input;
 		manager = new TweenManager();
+		this.screen = scr;
 		
 		highscores = new int[HIGHSCORE_ENTRIES];		// Initialises the highscore array,
 		highscoreNames = new String[HIGHSCORE_ENTRIES];	// and the array of corresponding names.
@@ -55,9 +57,10 @@ public class UIElement extends InputAdapter {
 		panelA.setColor(Color.DARK_GRAY);														// Sets the color of the panel.
 		panelB = new Sprite(panelA);															// Uses panel A as the template for panel B.
 		
-		pauseButton = new GameButton(new Sprite(panelA)) {
+		pauseButton = new GameButton(new Sprite(panelA)) {			
 			@Override
 			public void buttonAction() {
+				screen.scoreOrbs();
 				displayMessage("Game Paused");
 			}
 		};
@@ -65,9 +68,9 @@ public class UIElement extends InputAdapter {
 		input.addProcessor(pauseButton);
 		
 		BitmapFont font = screen.getGame().assets.get("kenpixel_blocks.ttf", BitmapFont.class);							// Loads the font to use for drawing the UI's text elements.
-		scoreLabel = new TextElement("SCORE", font, 0, 0, TextElement.RIGHT, TextElement.CENTER);						// Generates the score label text,
+		scoreLabel = new TextElement("SCORE", font, 0, 0, TextElement.LEFT, TextElement.CENTER);						// Generates the score label text,
 		scoreVal = new TextElement(valToText(score), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);				// the score text,
-		highscoreLabel = new TextElement("HIGHSCORE", font, 0, 0, TextElement.RIGHT, TextElement.CENTER);				// the highscore label text,
+		highscoreLabel = new TextElement("HIGHSCORE", font, 0, 0, TextElement.LEFT, TextElement.CENTER);				// the highscore label text,
 		highscoreVal = new TextElement(valToText(highscores[0]), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);	// and the highscore value text.
 	}
 	
@@ -89,16 +92,26 @@ public class UIElement extends InputAdapter {
 			else paddingSize = panelA.getWidth() * PADDING_RATIO;
 			pauseButton.sprite.setBounds(paddingSize, panelA.getY() + paddingSize, panelHeight - paddingSize * 2, panelHeight - paddingSize * 2);	//
 			
-			Rectangle textZone = new Rectangle(0, 0, camera.viewportWidth / 2 - 1.5f * paddingSize, panelHeight - 2 * paddingSize);	//
+			Rectangle textZone = new Rectangle(0, 0, camera.viewportWidth * 0.4f - paddingSize * 1.5f, panelHeight - paddingSize * 2);
 			
-			highscoreLabel.scaleToFit(textZone, true);			//
-			highscoreVal.setScale(highscoreLabel.getScale());	//
-			scoreLabel.setScale(highscoreLabel.getScale());		//
-			scoreVal.setScale(highscoreLabel.getScale());		//
+			highscoreLabel.scaleToFit(textZone.width * 1.5f, textZone.height, true);
+			highscoreVal.scaleToFit(textZone, true);
+			scoreLabel.scaleToFit(textZone.width * 1.5f - pauseButton.sprite.getWidth() - paddingSize, textZone.height, true);
+			scoreVal.scaleToFit(textZone, true);
 			
-			scoreLabel.setPosition(panelA.getWidth() / 2 - paddingSize / 2, panelA.getY() + panelA.getHeight() / 2);
+			float sharedScale = highscoreLabel.getScale().x;
+			if(highscoreVal.getScale().x < sharedScale) sharedScale = highscoreVal.getScale().x;
+			if(scoreLabel.getScale().x < sharedScale) sharedScale = scoreLabel.getScale().x;
+			if(scoreVal.getScale().x < sharedScale) sharedScale = scoreVal.getScale().x;
+			
+			highscoreLabel.setScale(sharedScale, sharedScale);
+			highscoreVal.setScale(sharedScale, sharedScale);
+			scoreLabel.setScale(sharedScale, sharedScale);
+			scoreVal.setScale(sharedScale, sharedScale);
+			
+			scoreLabel.setPosition(panelA.getX() + pauseButton.sprite.getWidth() + paddingSize * 2, panelA.getY() + panelA.getHeight() / 2);
 			scoreVal.setPosition(panelA.getWidth() - paddingSize, panelA.getY() + panelA.getHeight() / 2);
-			highscoreLabel.setPosition(panelB.getWidth() / 2 - paddingSize / 2, panelB.getY() + panelB.getHeight() / 2);
+			highscoreLabel.setPosition(panelB.getY() + paddingSize, panelB.getY() + panelB.getHeight() / 2);
 			highscoreVal.setPosition(panelB.getWidth() - paddingSize, panelB.getY() + panelB.getHeight() / 2);
 		}
 		else {																		// Otherwise if the camera is in landscape,

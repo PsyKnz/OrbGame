@@ -3,7 +3,6 @@ package psyknz.libgdx.orbgame;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
@@ -11,11 +10,12 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.Joint;
 
 public class PlayerController extends InputAdapter {
 	
-	public static final int POINTS_PER_ORB = 10;		// Point value of each orb which is scored.
-	public static final float SELECTED_ORB_DIAMETER = PlayScreen.ORB_DIAMETER * 1.25f;
+	public static final int POINTS_PER_ORB = 10;										// Points received per orb scored.
+	public static final float SELECTED_ORB_DIAMETER = PlayScreen.ORB_DIAMETER * 1.25f;	// Size orbs should be once selected.
 	
 	private VectorTracker touches;		// VectorTracker recording all user input co-ordinates.
 	private UIElement ui;				// Reference to the UIElement for this game.
@@ -29,10 +29,16 @@ public class PlayerController extends InputAdapter {
 	private int activeFinger;				// Record of the finger used to select the current range of orbs.
 	private Body orbToAdd = null;			// Reference to an orb which is waiting to be added to the selection (works like a flag).
 	
+	private Array<Joint> joints = new Array<Joint>();	// Temporary Array used to access joints.
+	
 	private Array<Vector2> drawCoords = new Array<Vector2>();	// Temporary array of Vector2 objects for drawing selected orbs.
 	
+	/** Creates a new PlayerController.
+	 * @param world The box2d simulation the player is interacting with.
+	 * @param ui The ui element being displayed by the screen.
+	 * @param screen The screen this PlayerController is part of. */
 	public PlayerController(World world, UIElement ui, PlayScreen screen) {
-		this.world = world;
+		this.world = world;									// Sets a reference to the box2d simulation.
 		touches = new VectorTracker(SELECTED_ORB_DIAMETER);	// Creates a new VectorTracker to track touch input.
 		this.ui = ui;										// Sets the UI element the controller reports scores to.
 		this.screen = screen;								// Sets the screen this element is on.
@@ -47,29 +53,36 @@ public class PlayerController extends InputAdapter {
 	
 	/** Adds an orb to the list of currently selected orbs.
 	 * @param orb Reference to the orb which will be added to the array of selected orbs. */
-	public void addOrbToSelection(Body orb) {
+	public void addOrbToSelection(Body orb) {		
 		if(world.isLocked()) {	// If the box2d simulation is currently being processed,
 			orbToAdd = orb;		// then the orb waiting to be added is queued.
 			return;				// and the function exits.
 		}
 		
+		world.getJoints(joints);										// Gets a list of all joints in the game.
+		for(Joint joint : joints) {										// Iterates through each joint;
+			if(joint.getBodyA() == orb || joint.getBodyB() == orb) {	// if the selected orb is attached to the joint,
+				world.destroyJoint(joint);								// then the joint is destroyed.
+			}
+		}
+		
 		if(selectedOrbs.size > 0) {										// If there are already orbs selected by the player,
 			orbData = (OrbElement) selectedOrbs.peek().getUserData();	// the data for the last orb is acccessed,
-			orbData.setState(OrbElement.State.SELECTED);				// and its state is set to SELECTED (From ACTIVE_SELECTED).
+			orbData.state = OrbElement.State.SELECTED;					// and its state is set to SELECTED (From ACTIVE_SELECTED).
 			orbData.getPulse().setPulseScale(1.3f);						// Reduces the pulse scale.
 		}
 		
 		selectedOrbs.add(orb); 								// Adds the given orb to array of selected orbs,
 		orbData = (OrbElement) orb.getUserData();			// and accesses its user data,
-		orbData.setState(OrbElement.State.ACTIVE_SELECTED);	// to set its state to ACTIVE_SELECTED.
+		orbData.state = OrbElement.State.ACTIVE_SELECTED;	// to set its state to ACTIVE_SELECTED.
 		
 		// Increases the distance of recorded touch inputs to accomodate for a longer chain of selected orbs.
 		touches.setDistance(selectedOrbs.size * SELECTED_ORB_DIAMETER + SELECTED_ORB_DIAMETER);
 		orb.setType(BodyDef.BodyType.StaticBody);		// Sets the selected orb to static so that it isn't affected by forces.
 		orb.getFixtureList().first().setSensor(true);	// Sets the selected orb as a sensor so that it doesn't automatically collide.
 		
-		orb.getFixtureList().first().getShape().setRadius(SELECTED_ORB_DIAMETER);
-		orbData.getSprite().setSize(SELECTED_ORB_DIAMETER, SELECTED_ORB_DIAMETER);
+		orb.getFixtureList().first().getShape().setRadius(SELECTED_ORB_DIAMETER / 2);	// Blows up the orbs circle fixture,
+		orbData.getSprite().setSize(SELECTED_ORB_DIAMETER, SELECTED_ORB_DIAMETER);		// and its sprite.
 		
 		Sprite pulseSprite = new Sprite(orbData.getSprite());				// Creates a new sprite to use as the orbs pulse.
 		orbData.setPulse(new PulseElement(pulseSprite, 2, 3, 0.8f, 0.0f));	// Sets the pulse for the newly selected orb.
@@ -80,9 +93,9 @@ public class PlayerController extends InputAdapter {
 		if(world.isLocked() || selectedOrbs.size <= 0) return;	// If box2d is locked or there are no orbs selected nothing happens.
 		
 		ui.addToScore((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);	// The selected orbs are scored,
-		screen.spawnRate *= 0.95f;												// and the game difficulty is increased.
+		screen.spawnRate *= 0.97f;												// and the game difficulty is increased.
 		orbData = (OrbElement) selectedOrbs.peek().getUserData();				// User data for the last orb selected is accessed,
-		orbData.setState(OrbElement.State.SELECTED);							// and it is set to SELECTED to prevent further endCollision calls.
+		orbData.state = OrbElement.State.SELECTED;							// and it is set to SELECTED to prevent further endCollision calls.
 		for(Body orb : selectedOrbs) world.destroyBody(orb);					// Every selected orb is removed from the box2d simulation,
 		selectedOrbs.clear();													// and the array of selected orbs is cleared.
 		touches.setDistance(SELECTED_ORB_DIAMETER);								// Finally the input tracking distance is reset.
@@ -101,7 +114,7 @@ public class PlayerController extends InputAdapter {
 		
 		for(Body orb : screen.getOrbs()) { 								// Every orb is assessed,
 			orbData = (OrbElement) orb.getUserData();					// by having its user data accessed,
-			if(orbData.getState() == OrbElement.State.FREE) { 			// and checked to see if it is currently FREE.
+			if(orbData.state == OrbElement.State.FREE) { 				// and checked to see if it is currently FREE.
 				if(orbData.getBounds().contains(touch.x, touch.y)) {	// If it is and the player has touched down on it,
 					activeFinger = pointer;								// the finger used to make the selection is recorded,
 					addOrbToSelection(orb);								// the touched orb is added to the list of selected orbs,
@@ -142,6 +155,7 @@ public class PlayerController extends InputAdapter {
 		return false;
 	}
 	
+	/** Runs the game logic for the player. */
 	public void update() {
 		if(orbToAdd != null) {				// If an orb is currently queued to be added.
 			addOrbToSelection(orbToAdd);	// It is added to the selection,
@@ -154,11 +168,12 @@ public class PlayerController extends InputAdapter {
 		}
 	}
 	
+	/** Draws all player controlled resources.
+	 * @param batch The SpriteBatch used to draw the players orbs. */
 	public void draw(SpriteBatch batch) {
 		for(Body orb: selectedOrbs) {					// Every orb the user currently has selected,
 			orbData = (OrbElement) orb.getUserData();	// has its user data accessed,
 			orbData.getSprite().draw(batch);			// and is drawn to the screen.
 		}
 	}
-
 }

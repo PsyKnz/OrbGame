@@ -1,19 +1,26 @@
 package psyknz.libgdx.orbgame;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.joints.DistanceJointDef;
 
 public class OrbCollisionProcessor implements ContactListener {
 	
-	private PlayScreen screen; // Reference to the screen this processor is attached to.
+	private PlayScreen screen; 	// Reference to the screen this processor is attached to.
+	private World world;		// Reference to the box2d simulation this is processing collisions for.
 	
 	private OrbElement orbDataA, orbDataB;	// Temporary variables used to access orb user data.
 	
-	public OrbCollisionProcessor(PlayScreen screen) {
+	public OrbCollisionProcessor(PlayScreen screen, World world) {
 		this.screen = screen;
+		this.world = world;
+		this.world.setContactListener(this);
 	}
 	
 	@Override
@@ -42,17 +49,18 @@ public class OrbCollisionProcessor implements ContactListener {
 	 * @return	true if a collision outcome was detected. */
 	public boolean processBeginContact(Fixture a, Fixture b) {
 		orbDataA = (OrbElement) a.getBody().getUserData();
-		if(orbDataA.getState() == OrbElement.State.BORDER) {
+		if(orbDataA.state == OrbElement.State.BORDER) {
 			orbDataB = (OrbElement) b.getBody().getUserData();
-			if(orbDataB.getState() == OrbElement.State.FREE) {
-				orbDataB.enterPlayArea();
-				return true;
+			if(orbDataB.state == OrbElement.State.FREE) {
+				return orbDataB.inPlay = true;
 			}
-		}
-		else if(orbDataA.getState() == OrbElement.State.FREE && orbDataA.inPlayArea) {
+		}		
+		else if(orbDataA.state == OrbElement.State.FREE) {
 			orbDataB = (OrbElement) b.getBody().getUserData();
-			if(orbDataB.getState() == OrbElement.State.FREE && !orbDataB.inPlayArea) {
-				screen.gameOver(b.getBody());
+			if(orbDataB.state == OrbElement.State.FREE || orbDataB.state == OrbElement.State.MAGNET) {
+				if(!orbDataA.inPlay && orbDataB.inPlay) screen.gameOver(a.getBody());
+				else if(orbDataA.inPlay && !orbDataB.inPlay) screen.gameOver(b.getBody());
+				screen.events.add(new JointEvent(a.getBody(), b.getBody()));
 				return true;
 			}
 		}
@@ -66,21 +74,29 @@ public class OrbCollisionProcessor implements ContactListener {
 	 * @return	true if a collision outcome was detected. */
 	public boolean processEndContact(Fixture a, Fixture b) {
 		orbDataA = (OrbElement) a.getBody().getUserData();
-		if(orbDataA.getState() == OrbElement.State.ACTIVE_SELECTED) {
+		if(orbDataA.state == OrbElement.State.ACTIVE_SELECTED) {
 			orbDataB = (OrbElement) b.getBody().getUserData();
-			if(orbDataB.getState() == OrbElement.State.FREE && orbDataB.getSprite().getColor().equals(orbDataA.getSprite().getColor())) {
+			if(orbDataB.state == OrbElement.State.FREE && orbDataB.getSprite().getColor().equals(orbDataA.getSprite().getColor())) {
 				screen.selectOrb(b.getBody());
 				return true;
 			}
 		}
-		else if(orbDataA.getState() == OrbElement.State.BORDER) {
-			orbDataB = (OrbElement) b.getBody().getUserData();
-			if(orbDataB.getState() == OrbElement.State.FREE) {
-				orbDataB.exitPlayArea();
-				return true;
-			}
-		}
 		return false;
+	}
+	
+	private class JointEvent implements GameEvent {
+		
+		private DistanceJointDef jointDef;
+		
+		public JointEvent(Body a, Body b) {
+			jointDef = new DistanceJointDef();
+			jointDef.initialize(a, b, a.getPosition(), b.getPosition());
+		}
+		
+		@Override
+		public void eventAction() {
+			world.createJoint(jointDef);
+		}
 	}
 
 }
