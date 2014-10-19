@@ -17,12 +17,12 @@ public class OrbElement {
 	
 	private Body body; 		// Reference to the body this is orb data for.
 	private Sprite sprite; 	// Reference to the sprite to use when drawing this orb.
-	private State state; 	// Variable to track the current state of the element.
 	private Circle bounds; 	// Circle representing the orbs bounding box.
 	
-	private PulseElement pulse = null;	// Reference to the pulse coming from this orb. No pulse by default.
+	public State state;				// Current state of the orb.
+	public boolean inPlay = false;	// Whether or not the orb has entered the 'play area'.
 	
-	public boolean inPlayArea = false;	// Flag to track whether or not the orb is currently in the play area.
+	private PulseElement pulse = null;	// Reference to the pulse coming from this orb. No pulse by default.
 	
 	private Vector2 force; // Temporary variable used to process forces applied to the orb.
 	
@@ -71,21 +71,5 @@ public class OrbElement {
 	
 	public PulseElement getPulse() {
 		return pulse;
-	}
-	
-	public void setState(State state) {
-		this.state = state;
-	}
-	
-	public State getState() {
-		return state;
-	}
-
-	public void enterPlayArea() {
-		inPlayArea = true;
-	}
-	
-	public void exitPlayArea() {
-		inPlayArea = false;
 	}
 }

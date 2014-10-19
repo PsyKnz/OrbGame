@@ -27,7 +27,7 @@ public abstract class GameButton extends InputAdapter {
 	public boolean touchDragged(int screenX, int screenY, int pointer) {
 		touchCoords.set(screenX, screenY, 0);
 		if(camera != null) camera.unproject(touchCoords);
-		if(sprite.getBoundingRectangle().contains(touchCoords.x, touchCoords.y)) return selected = true;
+		if(sprite.getBoundingRectangle().contains(touchCoords.x, touchCoords.y)) selected = true;
 		return false;
 	}
 	

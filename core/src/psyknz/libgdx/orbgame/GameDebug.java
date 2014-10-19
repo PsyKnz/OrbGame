@@ -45,7 +45,7 @@ public class GameDebug extends InputAdapter{
 				screen.getCamera().position.y + screen.getCamera().viewportHeight / 2); 
 		if(body != null) {
 			OrbElement orbData = (OrbElement) body.getUserData();
-			font.draw(batch, "VEL: " + body.getLinearVelocity().x + ", " + body.getLinearVelocity().y + " " + orbData.inPlayArea,
+			font.draw(batch, "VEL: " + body.getLinearVelocity().x + ", " + body.getLinearVelocity().y + " " + orbData.inPlay,
 				body.getPosition().x, body.getPosition().y);
 		}
 	}
@@ -62,7 +62,7 @@ public class GameDebug extends InputAdapter{
 		world.getBodies(bodies);
 		for(Body orb : bodies) {
 			orbData = (OrbElement) orb.getUserData();
-			if(orbData.getBounds().contains(touchCoords.x, touchCoords.y) && orbData.getState() == OrbElement.State.FREE) {
+			if(orbData.getBounds().contains(touchCoords.x, touchCoords.y) && orbData.state == OrbElement.State.FREE) {
 				body = orb;
 				return true;
 			}
