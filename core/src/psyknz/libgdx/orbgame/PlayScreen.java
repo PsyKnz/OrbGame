@@ -2,6 +2,7 @@ package psyknz.libgdx.orbgame;
 
 import psyknz.libgdx.architecture.*;
 import psyknz.libgdx.orbgame.tweenaccessors.CameraTween;
+import psyknz.libgdx.orbgame.tweenaccessors.SpriteTween;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Color;
@@ -26,14 +27,11 @@ import aurelienribon.tweenengine.equations.Quart;
 public class PlayScreen extends GameScreen {
 	
 	public static final float ORB_DIAMETER = 54;	// Size of the orbs in the game.
+	public static final int NUM_COLORS = 5;			//
 	
 	private float spawnDistance;	// Distance from the magnet new orbs should be spawned at.
 	public float spawnRate = 1.0f;	// How frequently new orbs should spawn in seconds.
 	private float spawnTimer = 0;	// Tracks time in seconds until a new orb should spawn.
-	
-	// Array containing all the potential colors an orb can be.
-	private Color[] orbColors = {Color.BLUE, Color.PURPLE, Color.RED, Color.MAGENTA, Color.CYAN};
-	private Array<Color> colorList = new Array<Color>(); // Array which contains the above colours in random order.
 	
 	private int gameOverStage = 0;		// Flag used to determine if the game is over.
 	
@@ -45,8 +43,11 @@ public class PlayScreen extends GameScreen {
 	
 	private Array<Body> orbs = new Array<Body>(); // Creates a blank Array to store references to bodies in the Box2D simulation.
 	private PlayerController player;
-	public final Array<GameEvent> events;
+	private GamePalette palette;
+	
+	public final GameScore scores;	
 	public final TweenManager tweenManager;
+	public final GameEventProcessor eventProcessor;
 
 	private OrbElement orbData; // Member variable used to temporarily access orb data.
 	
@@ -60,8 +61,10 @@ public class PlayScreen extends GameScreen {
 	public PlayScreen(GameCore game) {
 		super(game);
 		viewSize = 480; // Sets the length of the shortest screen edge in game units.
-		events = new Array<GameEvent>();
+		palette = new GamePalette(NUM_COLORS);
 		tweenManager = new TweenManager();
+		eventProcessor = new GameEventProcessor();
+		scores = new GameScore();
 		
 		world = new World(new Vector2(0, 0), true);	// Creates the Box2D World space.
 		new OrbCollisionProcessor(this, world); 	// Creates a new collision processor to listen to box2d contcts.
@@ -97,42 +100,33 @@ public class PlayScreen extends GameScreen {
 	@Override
 	public void resize(int width, int height) {
 		super.resize(width, height);
-		camera.position.x = magnet.getPosition().x;	// Sets the x position of the camera to above the magnet.
-		camera.position.y = magnet.getPosition().y;	// Sets the y position of the camera to above the magnet.
-		camera.update();							// Updates the camera to put the changes into effect.
+		camera.position.set(magnet.getPosition().x, magnet.getPosition().y, 0);	// Places the camera overtop of the magnet.
+		camera.update();														// Updates the camera to put the changes into effect.
+		
+		player.setCamera(camera); // Sets the camera used by the player to process touch co-ordinates.
 		
 		uiCamera.viewportWidth = width;
 		uiCamera.viewportHeight = height;
-		uiCamera.position.set(width / 2, height / 2, 0);
 		uiCamera.update();
-		ui.setViewport(uiCamera);
-		
-		player.setCamera(camera);
+		ui.setCamera(uiCamera);
 	}
 	
 	@Override
 	public void resume() {
 		super.resume();
-		ui.displayMessage("Tap Screen to Resume"); // Waits for user input before resuming a game.
+		ui.displayMessage("Game Paused"); 	// Displays a pause message when the player resumes the game.
+		ui.enableInput();					// Immediately enables user input to clear the message.
 	}
 	
 	@Override
 	public void update(float delta) {		
-		if(gameOverStage > 0) {
-			player.scoreSelectedOrbs();
-			ui.addAllOutstandingPoints();
-			ui.addScoreToHighscores();
-			ui.saveHighscores();
-			gameOverStage = 2;
-		}
-		
-		tweenManager.update(delta);
-		
+		eventProcessor.update(delta);
+		tweenManager.update(delta);	
 		if(ui.update(delta)) return;
 		
 		if(gameOverStage > 1) {
 			for(Body orb : orbs) world.destroyBody(orb);
-			ui.resetScore();
+			scores.resetScore();
 			spawnRate = 1;
 			gameOverStage = 0;
 			Tween.to(camera, CameraTween.POS, 1).target(magnet.getPosition().x, magnet.getPosition().y, 0)
@@ -154,8 +148,6 @@ public class PlayScreen extends GameScreen {
 		}
 		
 		world.step(1/60f, 6, 2); // Steps through the Box2D simulation.
-		
-		while(events.size > 0) events.pop().eventAction();	// If there are any GameEvents waiting they are processed.
 		
 		player.update();
 		
@@ -215,7 +207,7 @@ public class PlayScreen extends GameScreen {
 		
 		Sprite orbSprite = new Sprite(game.assets.get("white_circle.png", Texture.class));	// Creates a sprite for the orb.
 		orbSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);	// Sets the size of the sprite as the default orb size.
-		orbSprite.setColor(getRandomColor());			// Sets the color of the sprite to a randomly selected color.
+		orbSprite.setColor(palette.getRandomColor());			// Sets the color of the sprite to a randomly selected color.
 		orb.setUserData(new OrbElement(orb, orbSprite,	// Generates the orbs non-physics related data.
 				OrbElement.State.FREE));	
 		
@@ -245,26 +237,22 @@ public class PlayScreen extends GameScreen {
 		}
 	}
 	
-	// Returns a random color from the list of predefined colors using a shuffled list without replacement.
-	public Color getRandomColor() {
-		if(colorList.size <= 1) {							// If the list of colors to choose from is empty a new list is generated.
-			for(int num = 0; num < 3; num++) {				// The list is filled with three of each color,
-				for(int i = 0; i < orbColors.length; i++) {	// using colors available in the current theme.
-					colorList.add(orbColors[i]);			// Colors are added sequentially.
-				}
-			}
-			colorList.shuffle(); // Shuffles the newly generated list to allow for randomisation.
-		}
-		return colorList.pop(); // Returns the color at the end of the list.
-	}
-	
 	public void gameOver(Body orb) {
-		ui.displayMessage("Game Over");
 		Tween.to(camera, CameraTween.POS, 1).target(orb.getPosition().x, orb.getPosition().y, 0)
 				.ease(Quart.OUT).start(tweenManager);
 		Tween.to(camera, CameraTween.VIEW, 1).target(camera.viewportWidth / 2, camera.viewportHeight / 2)
 				.ease(Quart.OUT).start(tweenManager);
-		gameOverStage = 1;
+		player.scoreSelectedOrbs();
+		ui.displayMessage("Game Over");
+		eventProcessor.addEvent(new GameEvent() {
+			@Override
+			public void eventAction() {
+				scores.addScoreToHighscores();
+				scores.saveHighscores();
+				ui.enableInput();
+			}
+		}).setTimer(1);
+		gameOverStage = 2;
 	}
 	
 	public void generateNewGame() {
@@ -303,7 +291,9 @@ public class PlayScreen extends GameScreen {
 		borderSpr.setSize(borderSize, borderSize);											// Sets its size to what was previously calculated,
 		borderSpr.setColor(Color.MAROON);													// and makes it MAROON.
 		border.setUserData(new OrbElement(border, borderSpr, OrbElement.State.BORDER));		// User data is generated for the border.
-		borderShape.dispose();																// The circle created to generate the border is disposed of.	
+		borderShape.dispose();																// The circle created to generate the border is disposed of.
+		
+		palette.generatePalette(MathUtils.random(360.0f ), NUM_COLORS);
 		
 		placeRingOfOrbs(6, 30);									// Places a ring of six orbs,
 		placeRingOfOrbs(12, 0);									// and a ring of 12 orbs,
@@ -314,7 +304,15 @@ public class PlayScreen extends GameScreen {
 			orbData.update(0);							// and is updated to sync its sprite with its physics body.
 		}
 		
-		ui.displayMessage("Play Game"); // Waits for user input before starting a game.
+		ui.resetScoreDisplay();
+		
+		ui.displayMessage("Play Game"); 			// Displays a message while waiting for the player to start a game.
+		eventProcessor.addEvent(new GameEvent() {	// Creates a new GameEvent.
+			@Override
+			public void eventAction() {
+				ui.enableInput();					// The event enables user input to start the game.
+			}
+		}).setTimer(0.5f);							// After a half second delay.
 	}
 	
 	public Array<Body> getOrbs() {

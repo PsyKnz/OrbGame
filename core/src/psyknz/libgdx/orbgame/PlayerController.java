@@ -85,14 +85,23 @@ public class PlayerController extends InputAdapter {
 		orbData.getSprite().setSize(SELECTED_ORB_DIAMETER, SELECTED_ORB_DIAMETER);		// and its sprite.
 		
 		Sprite pulseSprite = new Sprite(orbData.getSprite());				// Creates a new sprite to use as the orbs pulse.
+		//pulseSprite.setColor(GamePalette.invertColor(pulseSprite.getColor()));
 		orbData.setPulse(new PulseElement(pulseSprite, 2, 3, 0.8f, 0.0f));	// Sets the pulse for the newly selected orb.
 	}
 	
 	/** Scores all currently selected orbs and removes them from the game. */
 	public void scoreSelectedOrbs() {
-		if(world.isLocked() || selectedOrbs.size <= 0) return;	// If box2d is locked or there are no orbs selected nothing happens.
+		if(selectedOrbs.size <= 0) return;	// If there are no selected orbs to score nothing happens.
 		
-		ui.addToScore((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);	// The selected orbs are scored,
+		if(world.isLocked()) {
+			screen.eventProcessor.addEvent(new GameEvent() {
+				@Override
+				public void eventAction() {scoreSelectedOrbs();}
+			});
+			return;
+		}
+		
+		ui.addPoints((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);	// The selected orbs are scored,
 		screen.spawnRate *= 0.97f;												// and the game difficulty is increased.
 		orbData = (OrbElement) selectedOrbs.peek().getUserData();				// User data for the last orb selected is accessed,
 		orbData.state = OrbElement.State.SELECTED;							// and it is set to SELECTED to prevent further endCollision calls.
@@ -164,7 +173,7 @@ public class PlayerController extends InputAdapter {
 		
 		touches.interpolateCoords(drawCoords, selectedOrbs.size, SELECTED_ORB_DIAMETER);			// Interpolates an evenly spaced set of co-ordinates matching the users input.
 		for(int i = 0; i < selectedOrbs.size; i++) {												// Each selected orb,
-			selectedOrbs.get(i).setTransform(drawCoords.get(i), selectedOrbs.get(i).getAngle());	// is placed along tose co-ordinates.
+			selectedOrbs.get(i).setTransform(drawCoords.get(i), selectedOrbs.get(i).getAngle());	// is placed along those co-ordinates.
 		}
 	}
 	

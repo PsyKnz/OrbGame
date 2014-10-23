@@ -60,7 +60,7 @@ public class OrbCollisionProcessor implements ContactListener {
 			if(orbDataB.state == OrbElement.State.FREE || orbDataB.state == OrbElement.State.MAGNET) {
 				if(!orbDataA.inPlay && orbDataB.inPlay) screen.gameOver(a.getBody());
 				else if(orbDataA.inPlay && !orbDataB.inPlay) screen.gameOver(b.getBody());
-				screen.events.add(new JointEvent(a.getBody(), b.getBody()));
+				screen.eventProcessor.addEvent(new JointEvent(a.getBody(), b.getBody()));
 				return true;
 			}
 		}
@@ -84,7 +84,7 @@ public class OrbCollisionProcessor implements ContactListener {
 		return false;
 	}
 	
-	private class JointEvent implements GameEvent {
+	private class JointEvent extends GameEvent {
 		
 		private DistanceJointDef jointDef;
 		
