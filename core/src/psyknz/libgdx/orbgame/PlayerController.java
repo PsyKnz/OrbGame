@@ -78,6 +78,7 @@ public class PlayerController extends InputAdapter {
 		
 		// Increases the distance of recorded touch inputs to accomodate for a longer chain of selected orbs.
 		touches.setDistance(selectedOrbs.size * SELECTED_ORB_DIAMETER + SELECTED_ORB_DIAMETER);
+		touches.addVectorToEnd(orb.getPosition());		// And adds the orbs current position to the end of the chain.
 		orb.setType(BodyDef.BodyType.StaticBody);		// Sets the selected orb to static so that it isn't affected by forces.
 		orb.getFixtureList().first().setSensor(true);	// Sets the selected orb as a sensor so that it doesn't automatically collide.
 		

@@ -34,6 +34,10 @@ public class VectorTracker {
 		addVector(vec);						// Adds the newly created touch co-ordinate to the list of co-ordinates.
 	}
 	
+	public void addVectorToEnd(Vector2 vector) {
+		coords.add(vector);
+	}
+	
 	/** Removes any recorded co-ordinates which extend beyond the distance this TouchTracker is tracking. */
 	public void trimToDistance() {
 		if(coords.size > 1) {										// Trims the length of the array only if there are more than two co-ordinates.

@@ -12,10 +12,10 @@ public class TextElement {
 	public static final int CENTER = 1;				// Text can be horizontally aligned to the LEFT, CENTER, and RIGHT.
 	public static final int RIGHT = 2, BOTTOM = 2;	// Text can be vertically aligned to the TOP, CENTER, and BOTTOM.
 	
-	private String text;		// The text this element draws.
-	private BitmapFont font;	// The font used to draw the text.
-	private Vector2 pos, scale;	// The position of the text element on the screen and a vector representing how it should be scaled.
-	private Rectangle bounds;	// Bounding box for the text.
+	private String text;				// The text this element draws.
+	private BitmapFont font;			// The font used to draw the text.
+	private Vector2 pos, scale, draw;	// Vectors for the texts position, scale, and the co-ordinates for its draw function.
+	private Rectangle bounds;			// Bounding box for the text.
 	
 	public Color color = new Color(Color.WHITE); // The color the text element is set to.
 	
@@ -34,6 +34,7 @@ public class TextElement {
 		bounds = new Rectangle();	// Initialises the bounding box for the text.
 		pos = new Vector2(x, y);	// Sets the position of this element.
 		scale = new Vector2();		// Sets the scale of the text element to its default size.
+		draw = new Vector2();
 		this.text = text;			// Sets the text this element displays.
 		this.hAlign = hAlign;		// Sets the horizontal alignment of the text,
 		this.vAlign = vAlign;		// and its vertical alignment.
@@ -104,11 +105,17 @@ public class TextElement {
 	}
 	
 	public void setAlignment(int h, int v) {
-		bounds.setPosition(pos);							// By default sets the position of the bounding box to TOP, LEFT.
-		if(h == RIGHT) bounds.x -= bounds.width;			// Adjusts x to horizontally align the text to the RIGHT.
-		else if(h == CENTER) bounds.x -= bounds.width / 2;	// Adjusts x to horizontally align the text in the CENTER.
-		if(v >= BOTTOM) bounds.y += bounds.height;			// Adjusts y to vertically align the text to the BOTTOM.
-		else if(v == CENTER) bounds.y += bounds.height / 2;	// Adjusts y to vertically align the text in the CENTER.
+		draw.set(pos);				// By default sets the point to draw from as the texts position,
+		bounds.setPosition(pos);	// as well as the lower left corner of the bounding box. No changes if aligned LEFT.
+		
+		if(h == RIGHT) draw.x = bounds.x -= bounds.width;			// If aligned RIGHT then draw and bounds must be shifted left,
+		else if(h == CENTER) draw.x = bounds.x -= bounds.width / 2;	// same thing if CENTERED horizontally, but shifted by half as much.
+		if(v >= BOTTOM) draw.y += bounds.height;					// If aligned to the bottom only the draw point needs to be shifted up.
+		else if(v == CENTER) {										// If vertical alignment is CENTER,
+			draw.y += bounds.height / 2;							// then the draw points needs to be raied by half a much,
+			bounds.y -= bounds.height / 2;							// and the bounding box moved down by the same amount.
+		}
+		else bounds.y -= bounds.height;								// Lastly, if aligned to the TOP the draw point stays the same but the bounding box shifts down.
 		
 		this.hAlign = h;	// Sets the horizontal alignment.
 		this.vAlign = v;	// Sets the vertical alignment.
@@ -136,9 +143,9 @@ public class TextElement {
 	}
 	
 	public void draw(SpriteBatch batch) {		
-		font.setColor(color);						// Sets the color the text will be drawn,
-		font.setScale(scale.x, scale.y);			// and its scale.
-		font.draw(batch, text, bounds.x, bounds.y);	// Draws the text to the screen.
+		font.setColor(color);					// Sets the color the text will be drawn,
+		font.setScale(scale.x, scale.y);		// and its scale.
+		font.draw(batch, text, draw.x, draw.y);	// Draws the text to the screen.
 	}
 
 }

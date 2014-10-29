@@ -27,13 +27,14 @@ import aurelienribon.tweenengine.equations.Quart;
 public class PlayScreen extends GameScreen {
 	
 	public static final float ORB_DIAMETER = 54;	// Size of the orbs in the game.
-	public static final int NUM_COLORS = 5;			//
+	public static final int NUM_COLORS = 5;			// Number of different colors an orb can be in a game.
+	public static final int NUM_HIGHSCORES = 10;	// Number of highscores which are recorded locally by this game.
 	
 	private float spawnDistance;	// Distance from the magnet new orbs should be spawned at.
 	public float spawnRate = 1.0f;	// How frequently new orbs should spawn in seconds.
 	private float spawnTimer = 0;	// Tracks time in seconds until a new orb should spawn.
 	
-	private int gameOverStage = 0;		// Flag used to determine if the game is over.
+	private int gameOverStage = 0;	// Flag used to determine if the game is over.
 	
 	private World world; 			// Reference to the box2d simulation world.
 	private BodyDef orbBodyDef; 	// Default body definition for new orbs.
@@ -45,7 +46,7 @@ public class PlayScreen extends GameScreen {
 	private PlayerController player;
 	private GamePalette palette;
 	
-	public final GameScore scores;	
+	public final HighscoreSystem scores;	
 	public final TweenManager tweenManager;
 	public final GameEventProcessor eventProcessor;
 
@@ -64,7 +65,7 @@ public class PlayScreen extends GameScreen {
 		palette = new GamePalette(NUM_COLORS);
 		tweenManager = new TweenManager();
 		eventProcessor = new GameEventProcessor();
-		scores = new GameScore();
+		scores = new HighscoreSystem(NUM_HIGHSCORES);
 		
 		world = new World(new Vector2(0, 0), true);	// Creates the Box2D World space.
 		new OrbCollisionProcessor(this, world); 	// Creates a new collision processor to listen to box2d contcts.
@@ -88,7 +89,6 @@ public class PlayScreen extends GameScreen {
 		uiCamera = new OrthographicCamera();
 		
 		player = new PlayerController(world, ui, this);
-		input.addProcessor(player);
 	}
 	
 	@Override
@@ -114,8 +114,7 @@ public class PlayScreen extends GameScreen {
 	@Override
 	public void resume() {
 		super.resume();
-		ui.displayMessage("Game Paused"); 	// Displays a pause message when the player resumes the game.
-		ui.enableInput();					// Immediately enables user input to clear the message.
+		if(ui.messageStack.size == 0) ui.pauseGame(); // Pauses the game if there are no pending messages on the stack.
 	}
 	
 	@Override
@@ -243,13 +242,16 @@ public class PlayScreen extends GameScreen {
 		Tween.to(camera, CameraTween.VIEW, 1).target(camera.viewportWidth / 2, camera.viewportHeight / 2)
 				.ease(Quart.OUT).start(tweenManager);
 		player.scoreSelectedOrbs();
+		input.removeProcessor(player);
 		ui.displayMessage("Game Over");
 		eventProcessor.addEvent(new GameEvent() {
 			@Override
 			public void eventAction() {
-				scores.addScoreToHighscores();
-				scores.saveHighscores();
-				ui.enableInput();
+				int scoreResult = scores.addScoreToHighscores();
+				if(scoreResult < scores.getHighscoreEntries()) {
+					ui.displayHighscores().editHighscoreName(scoreResult);
+				}
+				else ui.enableInput("Tap to play again");
 			}
 		}).setTimer(1);
 		gameOverStage = 2;
@@ -310,9 +312,11 @@ public class PlayScreen extends GameScreen {
 		eventProcessor.addEvent(new GameEvent() {	// Creates a new GameEvent.
 			@Override
 			public void eventAction() {
-				ui.enableInput();					// The event enables user input to start the game.
+				ui.enableInput("Tap screen to start");	// The event enables user input to start the game.
 			}
-		}).setTimer(0.5f);							// After a half second delay.
+		}).setTimer(0.5f);	// After a half second delay.
+		
+		input.addProcessor(player);
 	}
 	
 	public Array<Body> getOrbs() {
