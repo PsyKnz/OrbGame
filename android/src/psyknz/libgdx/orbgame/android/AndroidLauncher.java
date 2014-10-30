@@ -59,7 +59,7 @@ public class AndroidLauncher extends AndroidApplication {
 	}
 	
 	private View createGameView(AndroidApplicationConfiguration cfg) {
-	    gameView = initializeForView(new OrbGame(), cfg);
+	    gameView = initializeForView(new OrbGame(new AndroidGoogleServices()), cfg);
 	    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
 	    params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
 	    params.addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);

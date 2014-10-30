@@ -9,6 +9,6 @@ public class DesktopLauncher {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.width = 480;
 		config.height = 640;
-		new LwjglApplication(new OrbGame(), config);
+		new LwjglApplication(new OrbGame(new DesktopGoogleServices()), config);
 	}
 }
