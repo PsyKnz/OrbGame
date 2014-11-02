@@ -1,6 +1,6 @@
 package psyknz.libgdx.orbgame.desktop;
 
-import psyknz.libgdx.orbgame.GoogleServicesResolver;
+import psyknz.libgdx.architecture.GoogleServicesResolver;
 
 public class DesktopGoogleServices implements GoogleServicesResolver {
 
@@ -13,6 +13,11 @@ public class DesktopGoogleServices implements GoogleServicesResolver {
 	@Override
 	public void loginGPGS() {
 		System.out.println("DesktopGoogleServices: loginGPGS()");
+	}
+	
+	@Override
+	public void logoutGPGS() {
+		System.out.println("DesktopGoogleServices: logoutGPGS()");
 	}
 
 	@Override

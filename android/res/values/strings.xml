@@ -3,6 +3,10 @@
 
     <string name="app_name">OrbGame</string>
     
-    <string name="app_id">683052653173</string>
+    <string name="app_id">375375632558</string>
+    
+    <string name="leaderboard_id">CgkIrrGGsfYKEAIQAQ</string>
+    
+    <string name="ad_unit_id">ca-app-pub-9619852994332454/7568636522</string>
 
 </resources>

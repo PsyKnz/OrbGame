@@ -247,11 +247,14 @@ public class PlayScreen extends GameScreen {
 		eventProcessor.addEvent(new GameEvent() {
 			@Override
 			public void eventAction() {
-				int scoreResult = scores.addScoreToHighscores();
+				game.services.submitScoreGPGS(scores.score);
+				game.services.getLeaderboardGPGS();
+				ui.enableInput("Tap to play again");
+				/*int scoreResult = scores.addScoreToHighscores();
 				if(scoreResult < scores.getHighscoreEntries()) {
 					ui.displayHighscores().editHighscoreName(scoreResult);
 				}
-				else ui.enableInput("Tap to play again");
+				else ui.enableInput("Tap to play again");*/
 			}
 		}).setTimer(1);
 		gameOverStage = 2;
