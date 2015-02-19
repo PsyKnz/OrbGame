@@ -11,14 +11,14 @@ public class ScoreBars {
 	public static final int PLACES_IN_SCORE = 7;		// Number of numerical places which should be displayed in the score.
 	public static final float PADDING_RATIO = 0.15f;	// Proportion of the score bar which should be used for padding between elements (based on the shortest edge).
 	
-	private UIElement ui;
+	private GameUi ui;
 	
 	private Sprite bgTop, bgBottom;
 	private TextElement highscoreLabel, scoreLabel;
 	public final TextElement highscoreVal, scoreVal;
 	private GameButton pauseButton;
 	
-	public ScoreBars(UIElement uiElement, Sprite background, BitmapFont font) {
+	public ScoreBars(GameUi uiElement, Sprite background, BitmapFont font) {
 		ui = uiElement;
 		bgTop = new Sprite(background);
 		bgTop.setColor(Color.DARK_GRAY);
@@ -35,8 +35,8 @@ public class ScoreBars {
 		
 		highscoreLabel = new TextElement("HIGHSCORE", font, 0, 0, TextElement.LEFT, TextElement.CENTER);
 		scoreLabel = new TextElement("SCORE", font, 0, 0, TextElement.RIGHT, TextElement.CENTER);
-		highscoreVal = new TextElement(UIElement.valToText(0, PLACES_IN_SCORE), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);
-		scoreVal = new TextElement(UIElement.valToText(0, PLACES_IN_SCORE), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);
+		highscoreVal = new TextElement(GameUi.valToText(0, PLACES_IN_SCORE), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);
+		scoreVal = new TextElement(GameUi.valToText(0, PLACES_IN_SCORE), font, 0, 0, TextElement.RIGHT, TextElement.CENTER);
 	}
 	
 	public void setCamera(Camera camera) {		

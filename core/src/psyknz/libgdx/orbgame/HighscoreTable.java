@@ -12,12 +12,12 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 
-public class HighscoreTable extends InputAdapter implements GameMessage {
+public class HighscoreTable extends InputAdapter implements UiElement {
 	
 	public static final float SCREEN_PADDING = 0.1f;	// Proportion of blank space between the table and edges of the screen.
 	public static final int MAX_CHARACTERS = 10;		// Maximum number of characters allowed in a highscore name.
 	
-	private UIElement ui;			// Reference to the UIElement for the game.
+	private GameUi ui;			// Reference to the UIElement for the game.
 	private HighscoreSystem scores;	// Reference to the Highscore information for the game.
 	
 	private Sprite bg;											// Sprite used to draw the background for the table.
@@ -32,7 +32,7 @@ public class HighscoreTable extends InputAdapter implements GameMessage {
 	 * @param background The sprite to use when drawing the tables background.
 	 * @param ui The UI element which is managing this table.
 	 * @param scores The score information you want presented in the highscore table. */
-	public HighscoreTable(Sprite background, UIElement ui, HighscoreSystem scores) {
+	public HighscoreTable(Sprite background, GameUi ui, HighscoreSystem scores) {
 		this.bg = background;																	// Sets the tables background sprite.
 		title = new TextElement("Highscores", ui.uiFont, 0, 0, TextElement.CENTER, TextElement.TOP);	// Creates its title.
 		
@@ -44,7 +44,7 @@ public class HighscoreTable extends InputAdapter implements GameMessage {
 		for(int i = 0; i < scores.getHighscoreEntries(); i++) {
 			highscoreNums[i] = new TextElement(i + 1 + ".", ui.uiFont, 0, 0, TextElement.LEFT, TextElement.TOP);
 			highscoreNames[i] = new TextElement(scores.getHighscoreName(i), ui.uiFont, 0, 0, TextElement.LEFT, TextElement.TOP);
-			highscores[i] = new TextElement(UIElement.valToText(scores.getHighscore(i), ScoreBars.PLACES_IN_SCORE), 
+			highscores[i] = new TextElement(GameUi.valToText(scores.getHighscore(i), ScoreBars.PLACES_IN_SCORE), 
 					ui.uiFont, 0, 0, TextElement.RIGHT, TextElement.TOP);
 		}
 		

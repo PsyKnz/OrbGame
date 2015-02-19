@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 
-public interface GameMessage extends InputProcessor {
+public interface UiElement extends InputProcessor {
 	
 	public void setCamera(Camera camera);
 	

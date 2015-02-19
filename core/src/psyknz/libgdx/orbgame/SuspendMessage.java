@@ -7,20 +7,20 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
-public class SuspendMessage extends InputAdapter implements GameMessage {
+public class SuspendMessage extends InputAdapter implements UiElement {
 	
 	public static final float PADDING_RATIO = 0.1f;	//
 	
 	private TextElement msg;	// Reference to the text element displaying the message.
 	private Sprite bg;			// Reference to the sprite used to draw the background for the element.
-	private UIElement ui;		// Reference to the UI element this message is being managed by.
+	private GameUi ui;		// Reference to the UI element this message is being managed by.
 	private Vector2 offset;
 	
-	public SuspendMessage(Sprite background, TextElement message, UIElement ui) {
+	public SuspendMessage(Sprite background, TextElement message, GameUi ui) {
 		this(background, message, ui, 0, 0);
 	}
 	
-	public SuspendMessage(Sprite background, TextElement message, UIElement ui, float x, float y) {
+	public SuspendMessage(Sprite background, TextElement message, GameUi ui, float x, float y) {
 		this.bg = background;
 		this.msg = message;
 		this.ui = ui;

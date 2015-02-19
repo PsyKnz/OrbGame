@@ -33,10 +33,12 @@ public class LoadingScreen extends GameScreen {
 		
 		game.assets.load("white_circle.png", Texture.class);	// Queues loading the sprite for the orbs,
 		game.assets.load("white_torus.png", Texture.class);		// and for the pulses.
+		game.assets.load("game_logo.png", Texture.class);		// and the game logo.
 		
 		Tween.registerAccessor(Color.class, new ColorTween());		// Registers the accessor to use for tweening Color values.
 		Tween.registerAccessor(Camera.class, new CameraTween());	// Registers the accessor to use for Tweening the Camera.
 		Tween.registerAccessor(Sprite.class, new SpriteTween());	// Registers the accessor to use for Tweening Sprites.
+		Tween.registerAccessor(Position2d.class, new Position2dTween());
 	}
 	
 	@Override

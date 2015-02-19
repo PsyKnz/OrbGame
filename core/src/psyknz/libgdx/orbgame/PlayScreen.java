@@ -52,7 +52,7 @@ public class PlayScreen extends GameScreen {
 
 	private OrbElement orbData; // Member variable used to temporarily access orb data.
 	
-	private UIElement ui;					//
+	private GameUi ui;					//
 	private OrthographicCamera uiCamera;	//
 	
 	private Vector2 velocity = new Vector2();
@@ -62,31 +62,27 @@ public class PlayScreen extends GameScreen {
 	public PlayScreen(GameCore game) {
 		super(game);
 		viewSize = 480; // Sets the length of the shortest screen edge in game units.
+		
 		palette = new GamePalette(NUM_COLORS);
 		tweenManager = new TweenManager();
 		eventProcessor = new GameEventProcessor();
 		scores = new HighscoreSystem(NUM_HIGHSCORES);
+		ui = new GameUi(this, input);
+		uiCamera = new OrthographicCamera();
+		
+		spawnDistance = (float) Math.sqrt(Math.pow(viewSize / 2, 2) + Math.pow(viewSize / 2, 2)) + ORB_DIAMETER; // Sets how far from the magnet orbs should spawn.
 		
 		world = new World(new Vector2(0, 0), true);	// Creates the Box2D World space.
 		new OrbCollisionProcessor(this, world); 	// Creates a new collision processor to listen to box2d contcts.
 		
-		// Sets the distance new orbs should spawn from the magnet to the distance from the magnet to the furtherest corner of the screen plus the radius of an orb.
-		spawnDistance = (float) Math.sqrt(Math.pow(viewSize / 2, 2) + Math.pow(viewSize / 2, 2)) + ORB_DIAMETER;
-		
-		orbShape = new CircleShape(); 			// Creates the circle shape used to define orbs.
-		orbShape.setRadius(ORB_DIAMETER / 2); 	// Sets the radius of all circles based on the pre-defined ORB_DIAMETER.
-		
 		orbBodyDef = new BodyDef(); 					// Creates the definition for orbs.
 		orbBodyDef.type = BodyDef.BodyType.DynamicBody; // Sets orbs type to dynamic so that it is affected by forces.
-		
-		orbFixDef = new FixtureDef(); 	// Creates a new fixture definiton for orbs.
-		orbFixDef.shape = orbShape; 	// Sets the fixtures shape to the predefined circle.
-		orbFixDef.friction = 0.0f; 		// Sets the orbs friction.
-		orbFixDef.density = 0.1f; 		// Sets the orbs density.
-		orbFixDef.restitution = 0.0f; 	// Sets the orbs restitution.
-		
-		ui = new UIElement(this, input);
-		uiCamera = new OrthographicCamera();
+		orbShape = new CircleShape(); 					// Creates the circle shape used to define orbs.
+		orbShape.setRadius(ORB_DIAMETER / 2); 			// Sets the radius of all circles to ORB_DIAMETER.
+		orbFixDef = new FixtureDef(); 					// Creates a new fixture definiton for orbs.
+		orbFixDef.shape = orbShape; 					// Sets the fixtures shape to the predefined circle.
+		orbFixDef.friction = 0.0f; 						// Sets the orbs friction.
+		orbFixDef.density = 0.1f; 						// Sets the orbs density.
 		
 		player = new PlayerController(world, ui, this);
 	}
@@ -94,21 +90,24 @@ public class PlayScreen extends GameScreen {
 	@Override
 	public void show() {
 		super.show();		
-		generateNewGame();	// When the screen is first switched to it generates a new game.
+		generateWorld();
+		//generateNewGame();	// When the screen is first switched to it generates a new game.
+		ui.displayMainMenu();
 	}
 	
 	@Override
 	public void resize(int width, int height) {
 		super.resize(width, height);
+		
 		camera.position.set(magnet.getPosition().x, magnet.getPosition().y, 0);	// Places the camera overtop of the magnet.
 		camera.update();														// Updates the camera to put the changes into effect.
 		
 		player.setCamera(camera); // Sets the camera used by the player to process touch co-ordinates.
 		
-		uiCamera.viewportWidth = width;
-		uiCamera.viewportHeight = height;
-		uiCamera.update();
-		ui.setCamera(uiCamera);
+		uiCamera.viewportWidth = width;		//
+		uiCamera.viewportHeight = height;	//
+		uiCamera.update();					//
+		ui.setCamera(uiCamera);				//
 	}
 	
 	@Override
@@ -260,7 +259,7 @@ public class PlayScreen extends GameScreen {
 		gameOverStage = 2;
 	}
 	
-	public void generateNewGame() {
+	public void generateWorld() {
 		BodyDef magnetDef = new BodyDef(); 				// Creates a new body definition for the magnet,
 		magnetDef.type = BodyDef.BodyType.StaticBody;	// sets it to static,
 		magnetDef.position.set(0, 0); 					// and places it at the centre of the game world (0, 0).
@@ -297,7 +296,9 @@ public class PlayScreen extends GameScreen {
 		borderSpr.setColor(Color.MAROON);													// and makes it MAROON.
 		border.setUserData(new OrbElement(border, borderSpr, OrbElement.State.BORDER));		// User data is generated for the border.
 		borderShape.dispose();																// The circle created to generate the border is disposed of.
-		
+	}
+	
+	public void generateNewGame() {		
 		palette.generatePalette(MathUtils.random(360.0f ), NUM_COLORS);
 		
 		placeRingOfOrbs(6, 30);									// Places a ring of six orbs,

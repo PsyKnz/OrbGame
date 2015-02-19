@@ -18,7 +18,7 @@ public class PlayerController extends InputAdapter {
 	public static final float SELECTED_ORB_DIAMETER = PlayScreen.ORB_DIAMETER * 1.25f;	// Size orbs should be once selected.
 	
 	private VectorTracker touches;		// VectorTracker recording all user input co-ordinates.
-	private UIElement ui;				// Reference to the UIElement for this game.
+	private GameUi ui;				// Reference to the UIElement for this game.
 	private PlayScreen screen;			// Reference to the PlayScreen this Controller is attached to.
 	private Array<Body> selectedOrbs;	// Array containing all orbs selected by the player.
 	private World world;				// Reference to the box2d simulation the player is interacting with.
@@ -37,7 +37,7 @@ public class PlayerController extends InputAdapter {
 	 * @param world The box2d simulation the player is interacting with.
 	 * @param ui The ui element being displayed by the screen.
 	 * @param screen The screen this PlayerController is part of. */
-	public PlayerController(World world, UIElement ui, PlayScreen screen) {
+	public PlayerController(World world, GameUi ui, PlayScreen screen) {
 		this.world = world;									// Sets a reference to the box2d simulation.
 		touches = new VectorTracker(SELECTED_ORB_DIAMETER);	// Creates a new VectorTracker to track touch input.
 		this.ui = ui;										// Sets the UI element the controller reports scores to.
