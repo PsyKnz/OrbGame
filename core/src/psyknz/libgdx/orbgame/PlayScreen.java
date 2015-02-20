@@ -91,8 +91,8 @@ public class PlayScreen extends GameScreen {
 	public void show() {
 		super.show();		
 		generateWorld();
-		//generateNewGame();	// When the screen is first switched to it generates a new game.
-		ui.displayMainMenu();
+		generateNewGame();
+		//ui.displayMainMenu();
 	}
 	
 	@Override
@@ -127,10 +127,11 @@ public class PlayScreen extends GameScreen {
 			scores.resetScore();
 			spawnRate = 1;
 			gameOverStage = 0;
-			Tween.to(camera, CameraTween.POS, 1).target(magnet.getPosition().x, magnet.getPosition().y, 0)
+			/*Tween.to(camera, CameraTween.POS, 1).target(magnet.getPosition().x, magnet.getPosition().y, 0)
 					.ease(Quart.OUT).start(tweenManager);
 			Tween.to(camera, CameraTween.VIEW, 1).target(camera.viewportWidth * 2, camera.viewportHeight * 2)
-					.ease(Quart.OUT).start(tweenManager);
+					.ease(Quart.OUT).start(tweenManager);*/
+			generateWorld();
 			generateNewGame();
 		}
 		
@@ -236,10 +237,10 @@ public class PlayScreen extends GameScreen {
 	}
 	
 	public void gameOver(Body orb) {
-		Tween.to(camera, CameraTween.POS, 1).target(orb.getPosition().x, orb.getPosition().y, 0)
+		/*Tween.to(camera, CameraTween.POS, 1).target(orb.getPosition().x, orb.getPosition().y, 0)
 				.ease(Quart.OUT).start(tweenManager);
 		Tween.to(camera, CameraTween.VIEW, 1).target(camera.viewportWidth / 2, camera.viewportHeight / 2)
-				.ease(Quart.OUT).start(tweenManager);
+				.ease(Quart.OUT).start(tweenManager);*/
 		player.scoreSelectedOrbs();
 		input.removeProcessor(player);
 		ui.displayMessage("Game Over");
