@@ -1,30 +1,37 @@
-package psyknz.libgdx.orbgame;
+package psyknz.libgdx.orbgame.layers;
 
-import psyknz.libgdx.orbgame.tweenaccessors.*;
-
-import psyknz.libgdx.architecture.*;
-
+import psyknz.libgdx.orbgame.Position2d;
+import psyknz.libgdx.orbgame.TextElement;
 import psyknz.libgdx.orbgame.screens.PlayScreen2D;
 import psyknz.libgdx.orbgame.screens.GameScreen2D;
+import psyknz.libgdx.orbgame.tweenaccessors.CameraTween;
+import psyknz.libgdx.orbgame.tweenaccessors.ColorTween;
+import psyknz.libgdx.orbgame.tweenaccessors.Position2dTween;
+import psyknz.libgdx.orbgame.tweenaccessors.SpriteTween;
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Rectangle;
+import psyknz.libgdx.architecture.FreeTypeFontLoader;
+import psyknz.libgdx.architecture.GameCore;
 
 import aurelienribon.tweenengine.Tween;
 
-public class LoadingScreen extends GameScreen {
+import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Rectangle;
+
+public class LoadingLayer implements GameLayer {
+
+	private GameScreen2D screen;
+	private GameCore game;
 	
 	private TextElement loading;	// TextElement displaying loading information.
 	
-	/** Creates a new loading screen which loads all assets used by the OrbGame.
-	 * @param game The GameCore object managing this screen. */
-	public LoadingScreen(GameCore game) {
-		super(game);
+	public LoadingLayer(GameScreen2D screen) {
+		this.screen = screen;
+		this.game = screen.getGame();
 		
 		FreeTypeFontLoader.FreeTypeFontParameter p = new FreeTypeFontLoader.FreeTypeFontParameter();	// Creates a new FreeType Font
 		p.size = 72;	// Loader parameter file and sets the size of the font to load as 72 so that it generally only scales down.
@@ -45,25 +52,26 @@ public class LoadingScreen extends GameScreen {
 	}
 	
 	@Override
-	public void resize(int width, int height) {
-		super.resize(width, height);
-		
-		camera.position.set(0, 0, 0);	// Centers the camera,
-		camera.update();				// and updates the change.
-		
+	public void resize(Camera camera) {
 		// Calculates where the loading text should fit.
-		Rectangle textArea = new Rectangle(width * 0.25f, height * 0.25f, width * 0.5f, height * 0.5f);
+		Rectangle textArea = new Rectangle(camera.viewportWidth * 0.25f, camera.viewportHeight * 0.25f, 
+				camera.viewportWidth * 0.5f, camera.viewportHeight * 0.5f);
 		loading.scaleToFit(textArea, true);	// Forces the text to fit within this area.
 	}
-	
+
 	@Override
-	public void render(float delta) {
-		if(game.assets.update()) nextScreen = new PlayScreen(game); 			// Keeps the AssetManager loading and switches the screen when finished.
-		loading.setText("Loading..." + game.assets.getProgress() * 100 + "%");	// Updates the loading message with the current progress from the AssetManager.
+	public boolean update(float delta) {
+		if(game.assets.update()) screen.setScreen(new PlayScreen2D(game)); 	// Keeps the AssetManager loading and switches the screen when finished.
+		loading.setText("Loading..." + game.assets.getProgress() * 100 + "%");			// Updates the loading message with the current progress from the AssetManager.
+		return false;
 	}
-	
+
 	@Override
-	public void draw(SpriteBatch batch, Rectangle area) {
+	public void draw(SpriteBatch batch) {
 		loading.draw(batch);	// Draws the loading message.
 	}
+	
+	@Override
+	public void dispose() {}
+
 }

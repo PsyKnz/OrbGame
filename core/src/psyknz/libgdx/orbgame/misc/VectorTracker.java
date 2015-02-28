@@ -1,4 +1,4 @@
-package psyknz.libgdx.orbgame;
+package psyknz.libgdx.orbgame.misc;
 
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.math.Vector2;

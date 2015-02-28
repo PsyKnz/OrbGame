@@ -1,4 +1,4 @@
-package psyknz.libgdx.orbgame;
+package psyknz.libgdx.orbgame.misc;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.MathUtils;

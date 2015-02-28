@@ -1,6 +1,9 @@
 package psyknz.libgdx.orbgame;
 
 import psyknz.libgdx.architecture.*;
+import psyknz.libgdx.orbgame.misc.GamePalette;
+import psyknz.libgdx.orbgame.play.OrbCollisionProcessor;
+import psyknz.libgdx.orbgame.play.OrbData;
 import psyknz.libgdx.orbgame.tweenaccessors.CameraTween;
 import psyknz.libgdx.orbgame.tweenaccessors.SpriteTween;
 
@@ -50,7 +53,7 @@ public class PlayScreen extends GameScreen {
 	public final TweenManager tweenManager;
 	public final GameEventProcessor eventProcessor;
 
-	private OrbElement orbData; // Member variable used to temporarily access orb data.
+	private OrbData orbData; // Member variable used to temporarily access orb data.
 	
 	private GameUi ui;					//
 	private OrthographicCamera uiCamera;	//
@@ -73,7 +76,7 @@ public class PlayScreen extends GameScreen {
 		spawnDistance = (float) Math.sqrt(Math.pow(viewSize / 2, 2) + Math.pow(viewSize / 2, 2)) + ORB_DIAMETER; // Sets how far from the magnet orbs should spawn.
 		
 		world = new World(new Vector2(0, 0), true);	// Creates the Box2D World space.
-		new OrbCollisionProcessor(this, world); 	// Creates a new collision processor to listen to box2d contcts.
+		//new OrbCollisionProcessor(this, world); 	// Creates a new collision processor to listen to box2d contcts.
 		
 		orbBodyDef = new BodyDef(); 					// Creates the definition for orbs.
 		orbBodyDef.type = BodyDef.BodyType.DynamicBody; // Sets orbs type to dynamic so that it is affected by forces.
@@ -151,29 +154,24 @@ public class PlayScreen extends GameScreen {
 		player.update();
 		
 		for(Body orb: orbs) {							// For every orb in the simulation,
-			orbData = (OrbElement) orb.getUserData();	// it's user data is acessed.
+			orbData = (OrbData) orb.getUserData();	// it's user data is acessed.
 			orbData.update(delta);						// and the position of its bounding box is updated.
 		}
 	}
 	
 	@Override
 	public void draw(SpriteBatch batch, Rectangle view) {
-		orbData = (OrbElement) border.getUserData();	// Draws the border to the screen.
+		orbData = (OrbData) border.getUserData();	// Draws the border to the screen.
 		orbData.getSprite().draw(batch);		
-		orbData = (OrbElement) magnet.getUserData();	// Draws the magnet to the screen.
+		orbData = (OrbData) magnet.getUserData();	// Draws the magnet to the screen.
 		orbData.getSprite().draw(batch);
 		
 		for(Body orb: orbs) if(orb.getType() == BodyDef.BodyType.DynamicBody) {	// Every dynamic orb on the screen,
-			orbData = (OrbElement) orb.getUserData();							// has its user data accessed,
+			orbData = (OrbData) orb.getUserData();							// has its user data accessed,
 			orbData.getSprite().draw(batch);									// and is drawn to the screen.
 		}
 		
 		player.draw(batch);
-		
-		for(Body orb: orbs) {													// Every orb on the screen,
-			orbData = (OrbElement) orb.getUserData();							// has its user data accessed,
-			if(orbData.getPulse() != null) orbData.getPulse().draw(batch);	// and if it has a pulse its pulse is drawn.
-		}
 	}
 	
 	@Override
@@ -207,8 +205,8 @@ public class PlayScreen extends GameScreen {
 		Sprite orbSprite = new Sprite(game.assets.get("white_circle.png", Texture.class));	// Creates a sprite for the orb.
 		orbSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);	// Sets the size of the sprite as the default orb size.
 		orbSprite.setColor(palette.getRandomColor());			// Sets the color of the sprite to a randomly selected color.
-		orb.setUserData(new OrbElement(orb, orbSprite,	// Generates the orbs non-physics related data.
-				OrbElement.State.FREE));	
+		orb.setUserData(new OrbData(null, orb, orbSprite,	// Generates the orbs non-physics related data.
+				OrbData.State.FREE));	
 		
 		world.getBodies(orbs); // Refreshes the list of box2d elements.
 		
@@ -231,7 +229,7 @@ public class PlayScreen extends GameScreen {
 		for(int i = 0; i < num; i++) {
 			Body orb = createOrb(magnet.getPosition().x + MathUtils.sinDeg(i * 360 / num + offset) * distance, 
 					magnet.getPosition().y + MathUtils.cosDeg(i * 360 / num + offset) * distance);
-			orbData = (OrbElement) orb.getUserData();
+			orbData = (OrbData) orb.getUserData();
 			orbData.inPlay = true;
 		}
 	}
@@ -276,8 +274,8 @@ public class PlayScreen extends GameScreen {
 		pulse.setSize(ORB_DIAMETER, ORB_DIAMETER);										// Sets it to the size of an orb,
 		magnetSpr.setColor(Color.GRAY);													// and makes it gray.
 		
-		OrbElement magnetData = new OrbElement(magnet, magnetSpr, OrbElement.State.MAGNET); 	// Generates user data for the magnet.
-		magnetData.setPulse(new PulseElement(pulse, 3.5f, 2, 0.8f, 0));							// Adds the new pulse to the magnet.
+		OrbData magnetData = new OrbData(null, magnet, magnetSpr, OrbData.State.MAGNET); 	// Generates user data for the magnet.
+		//magnetData.setPulse(new PulseElement(pulse, 3.5f, 2, 0.8f, 0));							// Adds the new pulse to the magnet.
 		magnetData.inPlay = true;
 		magnet.setUserData(magnetData);															// Sets the data to the body.
 		
@@ -295,7 +293,7 @@ public class PlayScreen extends GameScreen {
 		Sprite borderSpr = new Sprite(game.assets.get("white_circle.png", Texture.class));	// Creates a sprite for the border.
 		borderSpr.setSize(borderSize, borderSize);											// Sets its size to what was previously calculated,
 		borderSpr.setColor(Color.MAROON);													// and makes it MAROON.
-		border.setUserData(new OrbElement(border, borderSpr, OrbElement.State.BORDER));		// User data is generated for the border.
+		border.setUserData(new OrbData(null, border, borderSpr, OrbData.State.BORDER));		// User data is generated for the border.
 		borderShape.dispose();																// The circle created to generate the border is disposed of.
 	}
 	
@@ -307,7 +305,7 @@ public class PlayScreen extends GameScreen {
 		for(int i = 0; i < 30; i++) world.step(1/60f, 6, 2);	// then simulates the world for half a second to put everything in place.
 		
 		for(Body orb: orbs) {							// Every orb in the simulation,
-			orbData = (OrbElement) orb.getUserData();	// has its user data accessed,
+			orbData = (OrbData) orb.getUserData();	// has its user data accessed,
 			orbData.update(0);							// and is updated to sync its sprite with its physics body.
 		}
 		

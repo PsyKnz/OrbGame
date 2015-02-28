@@ -21,11 +21,22 @@ public class TextElement {
 	
 	private int hAlign, vAlign; // Current horizontal and vertical alignment for the text (relative to its position).
 	
-	/** Creates a new TextElement with both its horizontal and vertical alignment as CENTER. 
+	/**
+	 * Creates a new text element that is aligned to its center and at 0, 0. Mostly used for text elements whose position is irrelevant.
+	 * @param text Text the element should display.
+	 * @param font The font used to draw the text.
+	 */
+	public TextElement(String text, BitmapFont font) {
+		this(text, font, 0, 0);
+	}
+	
+	/** 
+	 * Creates a new TextElement with both its horizontal and vertical alignment as CENTER. 
 	 * @param text Text the element should display.
 	 * @param font The font used to draw the text.
 	 * @param x The x position of the text.
-	 * @param y The y position of the text. */
+	 * @param y The y position of the text.
+	 */
 	public TextElement(String text, BitmapFont font, float x, float y) {
 		this(text, font, x, y, CENTER, CENTER);
 	}

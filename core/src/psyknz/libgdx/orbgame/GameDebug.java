@@ -1,5 +1,7 @@
 package psyknz.libgdx.orbgame;
 
+import psyknz.libgdx.orbgame.play.OrbData;
+
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -21,7 +23,7 @@ public class GameDebug extends InputAdapter{
 	
 	private Vector3 touchCoords = new Vector3();	// Temporary vector to store and translate screen -> game co-ordinates.
 	private Array<Body> bodies = new Array<Body>();	// Temporary array to store all bodies in the box2d simulation.
-	private OrbElement orbData;						// Temporary variable used to access orb user data.
+	private OrbData orbData;						// Temporary variable used to access orb user data.
 	
 	public GameDebug(PlayScreen screen, World world) {
 		this.screen = screen;
@@ -44,7 +46,7 @@ public class GameDebug extends InputAdapter{
 		font.draw(batch, "FPS: " + fps, screen.getCamera().position.x - screen.getCamera().viewportWidth / 2,
 				screen.getCamera().position.y + screen.getCamera().viewportHeight / 2); 
 		if(body != null) {
-			OrbElement orbData = (OrbElement) body.getUserData();
+			OrbData orbData = (OrbData) body.getUserData();
 			font.draw(batch, "VEL: " + body.getLinearVelocity().x + ", " + body.getLinearVelocity().y + " " + orbData.inPlay,
 				body.getPosition().x, body.getPosition().y);
 		}
@@ -61,8 +63,9 @@ public class GameDebug extends InputAdapter{
 		screen.getCamera().unproject(touchCoords);
 		world.getBodies(bodies);
 		for(Body orb : bodies) {
-			orbData = (OrbElement) orb.getUserData();
-			if(orbData.getBounds().contains(touchCoords.x, touchCoords.y) && orbData.state == OrbElement.State.FREE) {
+			orbData = (OrbData) orb.getUserData();
+			if(orbData.getBounds().contains(touchCoords.x, touchCoords.y) 
+					&& orbData.getState() == OrbData.State.FREE) {
 				body = orb;
 				return true;
 			}
