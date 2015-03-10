@@ -204,8 +204,7 @@ public class PlayScreen extends GameScreen {
 		
 		Sprite orbSprite = new Sprite(game.assets.get("white_circle.png", Texture.class));	// Creates a sprite for the orb.
 		orbSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);	// Sets the size of the sprite as the default orb size.
-		orbSprite.setColor(palette.getRandomColor());			// Sets the color of the sprite to a randomly selected color.
-		orb.setUserData(new OrbData(null, orb, orbSprite,	// Generates the orbs non-physics related data.
+		orb.setUserData(new OrbData(null, orb, orbSprite, palette.getRandomColor(),// Generates the orbs non-physics related data.
 				OrbData.State.FREE));	
 		
 		world.getBodies(orbs); // Refreshes the list of box2d elements.
@@ -272,9 +271,8 @@ public class PlayScreen extends GameScreen {
 		
 		Sprite pulse = new Sprite(game.assets.get("white_torus.png", Texture.class)); 	// Creates a pulse sprite for the magnet.
 		pulse.setSize(ORB_DIAMETER, ORB_DIAMETER);										// Sets it to the size of an orb,
-		magnetSpr.setColor(Color.GRAY);													// and makes it gray.
 		
-		OrbData magnetData = new OrbData(null, magnet, magnetSpr, OrbData.State.MAGNET); 	// Generates user data for the magnet.
+		OrbData magnetData = new OrbData(null, magnet, magnetSpr, Color.GRAY, OrbData.State.MAGNET); 	// Generates user data for the magnet.
 		//magnetData.setPulse(new PulseElement(pulse, 3.5f, 2, 0.8f, 0));							// Adds the new pulse to the magnet.
 		magnetData.inPlay = true;
 		magnet.setUserData(magnetData);															// Sets the data to the body.
@@ -292,8 +290,7 @@ public class PlayScreen extends GameScreen {
 		
 		Sprite borderSpr = new Sprite(game.assets.get("white_circle.png", Texture.class));	// Creates a sprite for the border.
 		borderSpr.setSize(borderSize, borderSize);											// Sets its size to what was previously calculated,
-		borderSpr.setColor(Color.MAROON);													// and makes it MAROON.
-		border.setUserData(new OrbData(null, border, borderSpr, OrbData.State.BORDER));		// User data is generated for the border.
+		border.setUserData(new OrbData(null, border, borderSpr, Color.MAROON, OrbData.State.BORDER));		// User data is generated for the border.
 		borderShape.dispose();																// The circle created to generate the border is disposed of.
 	}
 	

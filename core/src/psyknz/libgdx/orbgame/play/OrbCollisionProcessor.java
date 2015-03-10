@@ -69,17 +69,13 @@ public class OrbCollisionProcessor implements ContactListener {
 			orbDataB = (OrbData) b.getBody().getUserData();			// then orb data for Fixture B is accessed.
 			if(orbDataB.getState() == OrbData.State.FREE ||			// Tests if Fixture B is free moving aswell,
 					orbDataB.getState() == OrbData.State.MAGNET) {	// or if it is the magnet.
-				/*if(!orbDataA.inPlay && orbDataB.inPlay) 			// If Fixture A is not in play but Fixture B is in play
-					layer.endGame(a.getBody());						// then game over is called.
-				else if(orbDataA.inPlay && !orbDataB.inPlay) 		// The same check is performed but in reverse,
-					layer.endGame(b.getBody());*/					// if true, game over.
 				if(!orbDataA.inPlay && orbDataB.inPlay || 
 						orbDataA.inPlay && !orbDataB.inPlay) {
 					
 					Tween.call(new TweenCallback() {
 						@Override
 						public void onEvent(int type, BaseTween<?> source) {
-							layer.endGame(null);
+							layer.endGame();
 						}
 					}).start(layer.manager);
 					
@@ -107,7 +103,8 @@ public class OrbCollisionProcessor implements ContactListener {
 			if(orbDataB.getState() == OrbData.State.FREE && 		// If Fixture B is free moving and
 					orbDataB.getSprite().getColor().equals(			// is the same colour as Fixture A
 							orbDataA.getSprite().getColor())) {		//
-				Tween.call(new SelectOrbCallback(orbDataB));		// Orb B becomes selected
+				Tween.call(new SelectOrbCallback(orbDataB))			// Orb B becomes selected
+						.start(layer.manager);						// and the call is delayed until the next update.							
 				return true;										// and a collision is reported.
 			}
 		}

@@ -31,22 +31,27 @@ public class OrbLayer implements GameLayer {
 	public static final float END_IMPULSE = PlayScreen2D.PLAY_AREA_SIZE / 2;	// Force applied to orbs when the game ends.
 	public static final float BASE_SPAWN_RATE = 1.0f;							// Starting rate at which new orbs should spawn.
 	public static final int POINTS_PER_ORB = 10;								// Points received per orb scored.
+	public static final float DELAY_BETWEEN_PLACEMENTS = 0.5f;					// Time in seconds for a new game to start.
+	public static final float PLACEMENT_TWEEN_TIME = 2.0f;						// Time taken to place a ring of orbs.
 	
 	private AssetManager assets;		// Reference to the asset manager containing assets for orbs.
 	public final TweenManager manager;	// Reference to the tween manager used to process orb layer tweens.
-	public final PlayController player;		// Reference to the play controller which allows for interaction with the play field.
 	private GamePalette palette;		// Reference to the palette used to colour the game.
+	public final PlayController player;	// Reference to the play controller which allows for interaction with the play field.
+	private AIPlayer ai;				// Reference to the AI playing the game, if any.
 	
 	public final World world;			// Reference to the box2d simulation world.
 	private BodyDef orbBodyDef; 		// Default body definition for new orbs.
 	private FixtureDef orbFixDef;		// Fixture definitons for orbs and their sensors.
 	private CircleShape orbShape; 		// Shape information for orbs and their sensors.
+	private Sprite orbSprite;			// Reference to the base sprite used to draw all other orbs.
 	private OrbData border, magnet;		// References to the border and magnet object which are always present.
 	public final Array<OrbData> orbs;	// Array containing references to data for all orbs active in the simulation.
 	
 	private Camera camera;			// Reference to the camera used to draw this layer.
 	private float spawnDistance;	// Size of the visible play field and the distance at orbs spawn away from the magnet.
 	private Tween spawnTimer;		// Tween used to control the orbs spawning.
+	private float spawnRate;		//
 	
 	/**
 	 * Creates a new layer for processing orb interactions.
@@ -74,6 +79,9 @@ public class OrbLayer implements GameLayer {
 		orbFixDef.shape = orbShape; 					// Sets the fixtures shape to the predefined circle.
 		orbFixDef.friction = 0.0f; 						// Sets the orbs friction.
 		orbFixDef.density = 0.0f; 						// Sets the orbs density.
+		
+		orbSprite = new Sprite(assets.get("white_circle.png", Texture.class));	// Creates a sprite for the orb.
+		orbSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);							// Sets the size of the sprite as the default orb size.
 	}
 	
 	@Override
@@ -140,15 +148,11 @@ public class OrbLayer implements GameLayer {
 	 * @return Reference to the orb that was created.
 	 */
 	public Body createOrb(float x, float y) {
-		orbBodyDef.position.set(x, y); 				// Sets the x, y co-ordinates for the new orb.
-		Body orb = world.createBody(orbBodyDef);	// Creates a new orb in the physics world.
-		orb.createFixture(orbFixDef); 				// Generates the fixture representing the physical orb.
-			
-		Sprite orbSprite = new Sprite(assets.get("white_circle.png", Texture.class));	// Creates a sprite for the orb.
-		
-		orbSprite.setSize(ORB_DIAMETER, ORB_DIAMETER);						// Sets the size of the sprite as the default orb size.
-		orbSprite.setColor(palette.getRandomColor());						// Sets the color of the sprite to a randomly selected color.
-		orbs.add(new OrbData(this, orb, orbSprite, OrbData.State.FREE));	// Generates the orbs data, adds it to the array in FREE motion
+		orbBodyDef.position.set(x, y); 							// Sets the x, y co-ordinates for the new orb.
+		Body orb = world.createBody(orbBodyDef);				// Creates a new orb in the physics world.
+		orb.createFixture(orbFixDef); 							// Generates the fixture representing the physical orb.
+		orbs.add(new OrbData(this, orb, orbSprite, 				// Creates and adds new orb data to the list of orbs
+				palette.getRandomColor(), OrbData.State.FREE));	// using a random new color and in a FREE motion state.
 		
 		return orb; // Returns a reference to the orb which has just been created.
 	}
@@ -167,13 +171,13 @@ public class OrbLayer implements GameLayer {
 	 * @param orb The orb that has been selected by the player.
 	 */
 	public void selectOrb(OrbData orb) {
-		orbs.removeValue(orb, true);	//
-		player.selectOrb(orb);			//
+		orbs.removeValue(orb, true);	// Removes the selected orb from the layers record of FREE orbs
+		player.selectOrb(orb);			// and instead selects it.
 	}
 	
 	// TODO: implement a score system.
 	public void scoreOrbs(int num) {
-		setSpawnTimer(spawnTimer.getCurrentTime(), spawnTimer.getDuration() * 0.97f);	// Resets the spawn timer a bit quicker.
+		spawnRate *= 0.97f;
 		//ui.addPoints((int) Math.pow(selectedOrbs.size, 2) * POINTS_PER_ORB);	// The selected orbs are scored,
 	}
 	
@@ -182,14 +186,15 @@ public class OrbLayer implements GameLayer {
 	 * @param delay Delay before the first orb is created by this timer in seconds.
 	 * @param rate Number of seconds which should pass between each orb spawning.
 	 */
-	public void setSpawnTimer(float delay, float rate) {
-		if(spawnTimer != null) spawnTimer.kill();						// If the spawnTimer is currently running it is killed.
-		spawnTimer = Tween.call(new TweenCallback() {					// Starts a new Tween Callback
-			@Override													//
-			public void onEvent(int type, BaseTween<?> source) {		//
-				createOrb();											// to create orbs during play
-			}															// at the speed defined by the spawn rate, on repeat.
-		}).delay(delay).repeat(Tween.INFINITY, rate).start(manager);	// There is a 2s delay before orbs start spawning.
+	public void setSpawnTimer() {
+		if(spawnTimer != null) spawnTimer.kill();					// If the spawnTimer is currently running it is killed.
+		spawnTimer = Tween.call(new TweenCallback() {				// Starts a new Tween Callback
+			@Override												//
+			public void onEvent(int type, BaseTween<?> source) {	//
+				createOrb();										// to create orbs during play
+				setSpawnTimer();									//
+			}														// at the speed defined by the spawn rate, on repeat.
+		}).delay(spawnRate).start(manager);							//
 	}
 	
 	/**
@@ -213,8 +218,7 @@ public class OrbLayer implements GameLayer {
 				
 		Sprite borderSpr = new Sprite(assets.get("white_circle.png", Texture.class));	// Creates a sprite for the border.
 		borderSpr.setSize(borderSize, borderSize);										// Sets its size to what was previously calculated,
-		borderSpr.setColor(Color.MAROON);												// and makes it MAROON.
-		border = new OrbData(this, b, borderSpr, OrbData.State.BORDER);
+		border = new OrbData(this, b, borderSpr, Color.MAROON, OrbData.State.BORDER);	//
 		borderShape.dispose();															// Disposes of the borderShape when finished.
 	}
 	
@@ -229,15 +233,10 @@ public class OrbLayer implements GameLayer {
 		Body m = world.createBody(magnetDef);	// Creates a new magnet using the above Body Definition.
 		m.createFixture(orbShape, 0f);		// Provides the magnet with a single circular fixture of size 0,
 				
-		Sprite magnetSpr = new Sprite(assets.get("white_circle.png", Texture.class));	// Creates the magnets sprite.
-		magnetSpr.setSize(ORB_DIAMETER, ORB_DIAMETER);									// Sets it to the size of an orb,
-		magnetSpr.setColor(Color.GRAY);													// and makes it gray.
-				
 		Sprite pulse = new Sprite(assets.get("white_torus.png", Texture.class)); 	// Creates a pulse sprite for the magnet.
 		pulse.setSize(ORB_DIAMETER, ORB_DIAMETER);									// Sets it to the size of an orb,
-		magnetSpr.setColor(Color.GRAY);												// and makes it gray.
 				
-		magnet = new OrbData(this, m, magnetSpr, OrbData.State.MAGNET); 	// Generates user data for the magnet.
+		magnet = new OrbData(this, m, orbSprite, Color.GRAY, OrbData.State.MAGNET); 	// Generates user data for the magnet.
 		magnet.inPlay = true;															// Defines the magnet as in play.
 		// TODO: re-add a large pulse to the magnet.
 	}
@@ -253,18 +252,27 @@ public class OrbLayer implements GameLayer {
 			public void onEvent(int type, BaseTween<?> source) {	//
 				placeStartingOrbs(12, 0);							// to create the outer ring of 12 orbs, enclosing the inner 6
 			}														//
-		}).delay(0.5f).start(manager);								// after a delay of .5s
+		}).delay(DELAY_BETWEEN_PLACEMENTS).start(manager);			// after a delay of .5s
 		
-		setSpawnTimer(2.0f, BASE_SPAWN_RATE);	// Starts a new spawn timer at the starting speed.
+		spawnRate = BASE_SPAWN_RATE;	// Resets the spawn rate to the starting rate.
+		
+		Tween.call(new TweenCallback() {											// Uses a Tween Callback
+			@Override																//
+			public void onEvent(int type, BaseTween<?> source) {					//
+				if(ai != null) ai.start();											// to start the ai once the game begins
+				setSpawnTimer();													// and starts the spawn timer running.
+			}																		//
+		}).delay(DELAY_BETWEEN_PLACEMENTS + PLACEMENT_TWEEN_TIME).start(manager);	//
 	}
 	
 	/**
 	 * Ends the game by stopping orbs spawning, breaking all joints, and causing orbs to bounce off of screen.
-	 * @param body Reference to the body which caused the game to end.
 	 */
-	public void endGame(Body body) {
+	public void endGame() {
 		spawnTimer.kill();	// Stops the spawn timer to prevent new orbs being created.
 		spawnTimer = null;	// Then removes the reference to that timer.
+		
+		if(ai != null) ai.end();	// If an ai is interacting with this layer is is stopped.
 		
 		Array<Joint> joints = new Array<Joint>();		// Initialises an array to access all joints in the simulation.
 		world.getJoints(joints);						// Stores all joints in the array
@@ -285,6 +293,22 @@ public class OrbLayer implements GameLayer {
 	}
 	
 	/**
+	 * Enables use of the AI. Will not be starting until a new game is created.
+	 * @param ai The ai object running on this layer.
+	 */
+	public void enableAI(AIPlayer ai) {
+		this.ai = ai;
+	}
+	
+	/**
+	 * Disables use of the AI. Should be called before player input is allowed.
+	 */
+	public void disableAI() {
+		if(ai != null) ai.end();	// Stops the AI from running provided there is one.
+		this.ai = null;				// before clearning references to it.
+	}
+	
+	/**
 	 * Places a ring of orbs around the magnet at a distance which will make them touch but not overlap. Newly placed orbs have their
 	 * sprite 'pop' into existance using a tween.
 	 * @param num Number of orbs to place on screen.
@@ -300,10 +324,17 @@ public class OrbLayer implements GameLayer {
 					.getUserData();																		// OrbData for the orbs is accessed
 			orbData.inPlay = true;																		// so that they can be set as in play.
 			
-			Tween.to(orbData.getSprite(), SpriteTween.SIZE, 2.0f)								// The new orbs sprite is tweened to
+			Tween.to(orbData.getSprite(), SpriteTween.SIZE, PLACEMENT_TWEEN_TIME)				// The new orbs sprite is tweened to
 					.target(orbData.getSprite().getWidth(), orbData.getSprite().getHeight())	// its normal size over 2s using
 					.ease(Elastic.OUT).start(manager);											// elastic easing to make it 'pop'.
 			orbData.getSprite().setSize(0, 0);													// The orbs size is shrunk to nothing.
 		}
+	}
+	
+	/**
+	 * @return Reference to the magnet on this screen.
+	 */
+	public OrbData getMagnet() {
+		return magnet;
 	}
 }

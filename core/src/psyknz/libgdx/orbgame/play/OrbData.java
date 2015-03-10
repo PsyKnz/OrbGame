@@ -3,6 +3,7 @@ package psyknz.libgdx.orbgame.play;
 import psyknz.libgdx.orbgame.screens.PlayScreen2D;
 import psyknz.libgdx.orbgame.layers.OrbLayer;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector2;
@@ -28,6 +29,7 @@ public class OrbData {
 	public final Body body;			// Reference to the body this is orb data for.
 	private Sprite sprite; 			// Reference to the sprite to use when drawing this orb.
 	private Circle bounds; 			// Circle representing the orbs bounding box.
+	private Color color;			// Reference to the color that this orb is.
 	
 	private State state;			// Current state of the orb.
 	public boolean inPlay = false;	// Whether or not the orb has entered the 'play area'.
@@ -41,12 +43,14 @@ public class OrbData {
 	 * @param sprite
 	 * @param state
 	 */
-	public OrbData(OrbLayer layer, Body body, Sprite sprite, State state) {
-		this.layer = layer;				// Saves references to all details passed in the data's constructor.
-		this.body = body; 				//
-		this.sprite = sprite; 			//
-		setState(state);				//
-		this.body.setUserData(this);	//
+	public OrbData(OrbLayer layer, Body body, Sprite sprite, Color color, State state) {
+		this.layer = layer;					// Saves references to all details passed in the data's constructor.
+		this.body = body; 					//
+		this.sprite = new Sprite(sprite);	//
+		this.sprite.setColor(color);		//
+		this.color = color;					//
+		setState(state);					//
+		this.body.setUserData(this);		//
 			
 		bounds = new Circle(0, 0,										// Creates a bounding circle for this orb the same size as
 				body.getFixtureList().first().getShape().getRadius());	// the box2d circle used for its orb.
@@ -94,9 +98,19 @@ public class OrbData {
 	public void setState(State state, Vector2 target) {
 		this.state = state;
 		this.target = target;
-		if(state == State.GAME_OVER) body.setLinearVelocity(0, 0);
+		if(state == State.GAME_OVER) body.setLinearVelocity(0, 0);	// If set to a game over state, all its existing motion is cleared.
 	}
 	
+	/**
+	 * Sets the position of the orb, its sprite, and bounding box.
+	 * @param v Vector representing the position the orb should be placed at.
+	 */
+	public void setPosition(Vector2 v) {
+		body.setTransform(v, body.getAngle());	// Manually sets the position of the physics body.
+		bounds.setPosition(body.getPosition());	// Matches the location of the orbs bounding box to its physics body.
+		sprite.setCenter(bounds.x, bounds.y);	// Matches the location of the orbs sprite to its physics body.
+	}
+
 	/**
 	 * @return Current state of the orb.
 	 */
@@ -116,5 +130,12 @@ public class OrbData {
 	 */
 	public Sprite getSprite() {
 		return sprite;
+	}
+	
+	/**
+	 * @return Color of this sprite. This is a reference to the object found on the palette.
+	 */
+	public Color getColor() {
+		return color;
 	}
 }

@@ -44,6 +44,8 @@ public class LoadingLayer implements GameLayer {
 		game.assets.load("white_circle.png", Texture.class);	// Queues loading the sprite for the orbs,
 		game.assets.load("white_torus.png", Texture.class);		// and for the pulses.
 		game.assets.load("game_logo.png", Texture.class);		// and the game logo.
+		game.assets.load("pointer.png", Texture.class);			// and the picture for when the AI touches down
+		game.assets.load("singleplayer.png", Texture.class);	// and the picture for when the AI releases the screen.
 		
 		Tween.registerAccessor(Color.class, new ColorTween());		// Registers the accessor to use for tweening Color values.
 		Tween.registerAccessor(Camera.class, new CameraTween());	// Registers the accessor to use for Tweening the Camera.

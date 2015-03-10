@@ -17,7 +17,7 @@ public class PlayController extends InputAdapter {
 	public static final float SELECTED_ORB_DIAMETER = OrbLayer.ORB_DIAMETER * 1.25f;	// Size orbs should be once selected.
 	
 	private OrbLayer layer;					// Reference to the orb layer this is the player controller for.
-	private VectorTracker touches;			// VectorTracker recording all user input co-ordinates.
+	public final VectorTracker touches;		// VectorTracker recording all user input co-ordinates.
 	private Array<OrbData> selectedOrbs;	// Array containing all orbs selected by the player.
 	
 	private Camera camera = null; 			// Reference to the camera being used to draw the scene. Does not process input if null.
@@ -50,7 +50,7 @@ public class PlayController extends InputAdapter {
 	 * Adds an orb to the list of currently selected orbs.
 	 * @param orb Reference to the orb which will be added to the array of selected orbs.
 	 */
-	public void selectOrb(OrbData orb) {
+	public void selectOrb(OrbData orb) {		
 		Array<Joint> joints = new Array<Joint>();								// Temporary Array used to access joints.
 		layer.world.getJoints(joints);											// Gets a list of all joints in the game.
 		for(Joint joint : joints) {												// Iterates through each joint;
@@ -61,15 +61,15 @@ public class PlayController extends InputAdapter {
 		
 		if(selectedOrbs.size > 0) 									// If there are any currently selected orbs the current actively
 			selectedOrbs.peek().setState(OrbData.State.SELECTED);	// selected orb becomes selected.
-		selectedOrbs.add(orb); 										// Adds the given orb to array of selected orbs,
 		orb.setState(OrbData.State.ACTIVE_SELECTED);				// to set its state to ACTIVE_SELECTED.
+		selectedOrbs.add(orb); 										// Adds the given orb to array of selected orbs,
 		
 		touches.setDistance((selectedOrbs.size + 1) * SELECTED_ORB_DIAMETER);	// Extends the length of touch input recorded and
 		touches.addVectorToEnd(orb.body.getPosition());							// adds the position of the selected orb to the end.
 		
 		orb.body.setType(BodyDef.BodyType.StaticBody);		// Sets the selected orb to static so that it isn't affected by forces.
 		orb.body.getFixtureList().first().setSensor(true);	// Selected orb is set to a sensor to prevent physics based collisions.
-		
+
 		orb.body.getFixtureList().first().getShape().setRadius(SELECTED_ORB_DIAMETER / 2);	// Blows up the orbs circle fixture,
 		orb.getSprite().setSize(SELECTED_ORB_DIAMETER, SELECTED_ORB_DIAMETER);				// and its sprite.
 		
@@ -106,8 +106,8 @@ public class PlayController extends InputAdapter {
 			if(o.getState() == OrbData.State.FREE) { 			// and checked to see if it is currently FREE.
 				if(o.getBounds().contains(touch.x, touch.y)) {	// If it is and the player has touched down on it,
 					activeFinger = pointer;						// the finger used to make the selection is recorded,
-					selectOrb(o);								// the touched orb is added to the list of selected orbs,
 					touches.addVector(touch.x, touch.y);		// and the touch co-ordinate is recorded.
+					layer.selectOrb(o);							// the touched orb is added to the list of selected orbs,
 					return true;								// Prevents further input from being processed.
 				}
 			}
@@ -155,8 +155,7 @@ public class PlayController extends InputAdapter {
 		touches.interpolateCoords(										// Interpolates an evenly spaced set of co-ordinates matching
 				drawCoords, selectedOrbs.size, SELECTED_ORB_DIAMETER);	// the users input and stores them in an array.
 		for(int i = 0; i < selectedOrbs.size; i++) {					// For each orb that is currently selected
-			selectedOrbs.get(i).body.setTransform(drawCoords.get(i),	// the orb is position at an interpolated co-ordinate
-					selectedOrbs.get(i).body.getAngle());				// while maintaining its current angle.
+			selectedOrbs.get(i).setPosition(drawCoords.get(i));			// Its position is updated based on the interpolated coords.
 		}
 	}
 	
